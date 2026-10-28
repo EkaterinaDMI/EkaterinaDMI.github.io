@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Мои листы</title>
+<style>
+/* Layout: одна колонка карточек листов, форма загрузки сверху */
+:root{--bg:#F4F3FA;--surface:#fff;--ink:#1B1E4B;--muted:#5D6290;--line:#DCDDEE;--accent:#6A4BF0;--soft:#ECE7FF;--ok:#1F8A5B;--bad:#D63A45;--f:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#12142E;--surface:#1C1F44;--ink:#ECEBFF;--muted:#A7AAD0;--line:#30346A;--accent:#A08BFF;--soft:#2C2766;--ok:#5FD39B;--bad:#FF7A82}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f)}
+.wrap{max-width:820px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 60px max(16px,env(safe-area-inset-left,0px));display:grid;gap:18px}
+h1{font-size:1.6rem;margin:0}
+h2{font-size:1.1rem;margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label.f{display:grid;gap:4px;font-size:.85rem;color:var(--muted);flex:1 1 200px;min-width:0}
+input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+button,.btn{font:inherit;font-size:.88rem;font-weight:600;border:1.5px solid var(--accent);color:var(--accent);background:transparent;border-radius:9px;padding:6px 12px;cursor:pointer;text-decoration:none;display:inline-block}
+button.main{background:var(--accent);color:#fff}
+button.warn{border-color:var(--bad);color:var(--bad)}
+.muted{color:var(--muted);font-size:.85rem}
+.sheet{display:grid;gap:8px}
+.sheet .t{font-weight:700}
+.res{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:.88rem;white-space:pre-wrap;max-height:340px;overflow:auto}
+.link{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;background:var(--bg);border-radius:8px;padding:4px 8px;word-break:break-all;user-select:all}
+#login{text-align:center;padding-top:80px}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="row"><h1 id="siteName">Мои листы</h1><span style="flex:1"></span><span class="muted" id="who"></span><button type="button" id="logout" hidden>Выйти</button></div>
+  <div id="login" class="card" hidden><h2>Вход для учителя</h2><p class="muted">Управлять листами можно только с почты администратора.</p><div><button type="button" class="main" id="loginBtn">Войти через Google</button></div><p class="muted" id="loginMsg"></p></div>
+  <div id="app" hidden style="display:grid;gap:18px">
+    <div class="card">
+      <h2>Добавить лист</h2>
+      <p class="muted">Выбери файл листа, который я пришлю (для сайта). Название подставится само.</p>
+      <div class="row"><input type="file" id="file" accept=".html,text/html"></div>
+      <div class="row"><label class="f">Название<input type="text" id="title"></label><label class="f">Ученик<input type="text" id="student" placeholder="Например, Филипп"></label></div>
+      <div class="row"><button type="button" class="main" id="add">Добавить</button><span class="muted" id="addMsg"></span></div>
+    </div>
+    <div class="row"><h2 style="flex:1">Листы</h2><label class="f" style="flex:0 1 240px"><input type="text" id="filter" placeholder="Поиск по ученику или названию"></label></div>
+    <div id="list" style="display:grid;gap:12px"></div>
+  </div>
+</div>
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  $('#siteName').textContent=window.SITE_NAME||'Мои листы';
+  firebase.initializeApp(window.FB_CONFIG);
+  const auth=firebase.auth(),fdb=firebase.firestore();
+  const isAdmin=u=>u&&!u.isAnonymous&&(u.email||'').toLowerCase()===String(window.ADMIN_EMAIL).toLowerCase();
+  const site=location.href.replace(/admin\.html.*$/,'');
+  $('#loginBtn').onclick=async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){$('#loginMsg').textContent='Не получилось войти: '+(e.message||e);}};
+  $('#logout').onclick=()=>auth.signOut();
+  auth.onAuthStateChanged(u=>{
+    if(!isAdmin(u)){$('#app').hidden=true;$('#login').hidden=false;$('#logout').hidden=!u;$('#who').textContent=u&&!u.isAnonymous?u.email+' (не администратор)':'';return;}
+    $('#login').hidden=true;$('#app').hidden=false;$('#logout').hidden=false;$('#who').textContent=u.email;load();
+  });
+  let file=null,sheets=[];
+  $('#file').onchange=async()=>{const f=$('#file').files[0];if(!f)return;const t=await f.text();file=t;
+    const m=t.match(/<title>([^<]*)<\/title>/i);if(m&&!$('#title').value)$('#title').value=m[1].trim();
+    const st=(m?m[1]:'').split('·')[0].trim();if(st&&!$('#student').value)$('#student').value=st;};
+  const rid=()=>{const a='abcdefghijkmnpqrstuvwxyz23456789';let s='';const r=crypto.getRandomValues(new Uint32Array(12));r.forEach(x=>s+=a[x%a.length]);return s;};
+  $('#add').onclick=async()=>{
+    if(!file){$('#addMsg').textContent='Сначала выбери файл.';return;}
+    if(!/window\.__ATTEMPT_ID/.test(file)){$('#addMsg').textContent='Это лист не для сайта. Попроси у Claude версию «для сайта».';return;}
+    if(file.length>950000){$('#addMsg').textContent='Файл слишком большой для сайта.';return;}
+    $('#addMsg').textContent='Сохраняю…';
+    try{const id=rid();await fdb.collection('sheets').doc(id).set({title:$('#title').value.trim()||'Лист',student:$('#student').value.trim(),html:file,createdAt:new Date().toISOString(),sessionId:'main'});
+      $('#addMsg').textContent='Лист добавлен.';file=null;$('#file').value='';$('#title').value='';$('#student').value='';load();}
+    catch(e){$('#addMsg').textContent='Не сохранилось: '+(e.message||e);}
+  };
+  $('#filter').oninput=render;
+  async function load(){
+    const q=await fdb.collection('sheets').orderBy('createdAt','desc').get();
+    sheets=q.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),createdAt:d.get('createdAt')}));render();
+  }
+  function copy(text,btn){const done=()=>{const o=btn.textContent;btn.textContent='Скопировано';setTimeout(()=>btn.textContent=o,1500);};
+    try{navigator.clipboard.writeText(text).then(done,()=>prompt('Скопируй ссылку:',text));}catch(e){prompt('Скопируй ссылку:',text);}}
+  function render(){
+    const f=$('#filter').value.trim().toLowerCase();const L=$('#list');L.innerHTML='';
+    const items=sheets.filter(s=>!f||(s.title+' '+s.student).toLowerCase().includes(f));
+    if(!items.length){L.innerHTML='<p class="muted">Листов пока нет. Добавь первый файл выше.</p>';return;}
+    items.forEach(s=>{
+      const c=document.createElement('div');c.className='card sheet';
+      const stu=site+'index.html?s='+s.id,tch=stu+'&t=1';
+      c.innerHTML='<div class="row"><span class="t"></span><span style="flex:1"></span><span class="muted"></span></div>'+
+        '<div class="row"><span class="muted">Ссылка ученику:</span><span class="link"></span></div>'+
+        '<div class="row"><button type="button" data-a="copy">Скопировать ссылку ученику</button><a class="btn" target="_blank" rel="noopener">Открыть урок</a><button type="button" data-a="res">Итоги</button><button type="button" data-a="claude">Итоги для Claude</button><button type="button" data-a="reset">Сбросить урок</button><button type="button" data-a="del">Удалить</button></div>'+
+        '<div class="res" hidden></div>';
+      c.querySelector('.t').textContent=(s.student?s.student+' · ':'')+(s.title||'');
+      c.querySelector('.muted').textContent=s.createdAt?new Date(s.createdAt).toLocaleDateString('ru-RU'):'';
+      c.querySelector('.link').textContent=stu;c.querySelector('a').href=tch;
+      const out=c.querySelector('.res');
+      c.querySelector('[data-a=copy]').onclick=e=>copy(stu,e.target);
+      c.querySelector('[data-a=res]').onclick=async()=>{out.hidden=false;out.textContent='Загружаю…';out.textContent=await summary(s,false);};
+      c.querySelector('[data-a=claude]').onclick=async e=>{const t=await summary(s,true);out.hidden=false;out.textContent=t;copy(t,e.target);};
+      armed(c.querySelector('[data-a=reset]'),'Стереть ответы урока?',async()=>{await clearColl(s.id,'events');await fdb.collection('sheets').doc(s.id).update({sessionId:'s'+Date.now().toString(36),sessionStarted:new Date().toISOString()});});
+      armed(c.querySelector('[data-a=del]'),'Удалить лист навсегда?',async()=>{for(const k of ['events','attempts','review','teacherimgs','blobs','presence'])await clearColl(s.id,k);await fdb.collection('sheets').doc(s.id).delete();load();});
+      L.appendChild(c);
+    });
+  }
+  function armed(btn,ask,fn){let on=false;const o=btn.textContent;btn.onclick=async()=>{if(!on){on=true;btn.classList.add('warn');btn.textContent=ask+' Нажми ещё раз';setTimeout(()=>{on=false;btn.classList.remove('warn');btn.textContent=o;},4000);return;}
+    btn.textContent='Выполняю…';try{await fn();btn.textContent='Готово';}catch(e){btn.textContent='Не получилось';}setTimeout(()=>{btn.textContent=o;btn.classList.remove('warn');on=false;},2000);};}
+  async function clearColl(id,name){const ref=fdb.collection('sheets').doc(id).collection(name);for(;;){const q=await ref.limit(400).get();if(q.empty)return;const b=fdb.batch();q.docs.forEach(d=>b.delete(d.ref));await b.commit();}}
+  async function summary(s,full){
+    const ref=fdb.collection('sheets').doc(s.id);
+    const [att,rev,imgs]=await Promise.all([ref.collection('attempts').get(),ref.collection('review').doc('next').get(),ref.collection('teacherimgs').get()]);
+    const L=['Лист: '+(s.student?s.student+' · ':'')+s.title+' (id '+s.id+')'];
+    const A=att.docs.map(d=>d.data()).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    if(!A.length)L.push('Результатов пока нет.');
+    A.slice(0,full?3:1).forEach(a=>{
+      L.push('','Попытка '+(a.updatedAt||'').slice(0,16).replace('T',' ')+(a.finished?' · урок закончен':'')+': решено '+(a.lesson?a.lesson.solved:a.solved)+' из '+(a.lesson?a.lesson.total:a.total)+', верно '+(a.lesson?a.lesson.correct:a.correct)+'.');
+      if(a.hidden&&a.hidden.length)L.push('Скрыто учителем: '+a.hidden.join('; '));
+      (a.errors||[]).forEach((e,i)=>L.push((i+1)+') ['+e.section+'] '+e.q+' — ответ: '+e.given+'; верно: '+e.right));
+      if(a.timing&&a.timing.length)L.push('Время: '+a.timing.map(t=>t.section+' '+t.minutes+' мин').join('; '));
+      if(full&&a.blitz)L.push('Блиц: '+JSON.stringify(a.blitz));
+    });
+    const r=rev.exists?rev.data():null;if(r&&((r.topics||[]).length||r.note))L.push('','Повторить на следующем уроке: '+(r.topics||[]).join('; ')+(r.note?' · заметка: '+r.note:''));
+    const I=imgs.docs.map(d=>d.data());if(I.length){L.push('','Свои задания картинкой:');I.forEach((d,i)=>L.push((i+1)+') ['+(d.sectionName||d.section)+'] '+(d.caption||'без подписи')+' · '+(d.check===true?'верно':d.check===false?'есть ошибки':'не проверено')+(d.note?' · ошибки: '+d.note:'')));if(full)L.push('(сами картинки пришли Claude скриншотом)');}
+    return L.join('\n');
+  }
+})();
+</script>
+</body>
+</html>

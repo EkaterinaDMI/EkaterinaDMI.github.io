@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Урок русского языка</title>
+<style>
+:root{--bg:#F4F3FA;--surface:#fff;--ink:#1B1E4B;--muted:#5D6290;--line:#DCDDEE;--accent:#6A4BF0;--ok:#1F8A5B;--bad:#D63A45;--f:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#12142E;--surface:#1C1F44;--ink:#ECEBFF;--muted:#A7AAD0;--line:#30346A;--accent:#A08BFF;--ok:#5FD39B;--bad:#FF7A82}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 var(--f)}
+#bar{position:fixed;left:0;right:0;top:0;height:calc(42px + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:10px;background:var(--surface);border-bottom:1px solid var(--line);z-index:5;overflow-x:auto;white-space:nowrap}
+#bar b{font-size:.95rem}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);display:inline-block;flex:none}
+.dot.on{background:var(--ok)}.dot.off{background:var(--bad)}
+.st{font-size:.85rem;color:var(--muted)}
+#bar button,#bar a{font:inherit;font-size:.82rem;font-weight:600;border:1.5px solid var(--accent);color:var(--accent);background:transparent;border-radius:8px;padding:4px 10px;cursor:pointer;text-decoration:none;flex:none}
+#bar button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+#bar button.warn{border-color:var(--bad);color:var(--bad)}
+.sp{flex:1}
+#frame{position:fixed;left:0;right:0;bottom:0;top:calc(42px + env(safe-area-inset-top,0px));width:100%;height:calc(100% - 42px - env(safe-area-inset-top,0px));border:0;background:var(--bg)}
+#msg{max-width:460px;margin:0 auto;padding:120px 20px 20px;text-align:center;display:grid;gap:14px}
+#msg h1{font-size:1.4rem;margin:0}
+#msg button{font:inherit;font-weight:600;font-size:1rem;border:0;border-radius:10px;padding:12px 18px;background:var(--accent);color:#fff;cursor:pointer}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<div id="bar" hidden></div>
+<div id="msg"><h1>Загружаю урок…</h1><p class="st">Подожди несколько секунд.</p></div>
+<iframe id="frame" title="Рабочий лист" hidden></iframe>
+<script>
+(async function(){
+  const $=s=>document.querySelector(s);
+  const P=new URLSearchParams(location.search);const sid=P.get('s');const T=P.get('t')==='1';
+  const msg=(h,p,btn)=>{const m=$('#msg');m.hidden=false;m.innerHTML='<h1>'+h+'</h1>'+(p?'<p class="st">'+p+'</p>':'');if(btn)m.appendChild(btn);};
+  if(!sid){location.replace('admin.html');return;}
+  firebase.initializeApp(window.FB_CONFIG);
+  const auth=firebase.auth(),fdb=firebase.firestore();
+  const FV=firebase.firestore.FieldValue;
+  const user=await new Promise(r=>{const u=auth.onAuthStateChanged(x=>{u();r(x);});});
+  if(T){
+    const ok=u=>u&&!u.isAnonymous&&(u.email||'').toLowerCase()===String(window.ADMIN_EMAIL).toLowerCase();
+    if(!ok(user)){
+      const b=document.createElement('button');b.textContent='Войти через Google';
+      b.onclick=async()=>{try{const r=await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());if(ok(r.user))location.reload();else msg('Это ссылка учителя','Войди под почтой администратора.',b);}catch(e){msg('Не получилось войти',String(e.message||e),b);}};
+      msg('Вход для учителя','Войди, чтобы вести урок.',b);return;
+    }
+  }else if(!user){try{await auth.signInAnonymously();}catch(e){msg('Нет связи с сайтом','Проверь интернет и обнови страницу.');return;}}
+  const base=fdb.collection('sheets').doc(sid);
+  let sheet;
+  try{const s=await base.get();if(!s.exists){msg('Лист не найден','Проверь ссылку или попроси новую у учителя.');return;}sheet=s.data();}
+  catch(e){msg('Нет связи с сайтом','Проверь интернет и обнови страницу.');return;}
+  document.title=(sheet.title||'Урок')+(T?' · учитель':'');
+  const session=sheet.sessionId||'main';
+  const CID=Math.random().toString(36).slice(2,10);
+  let n=0;
+  /* события урока */
+  const evQ=base.collection('events').orderBy('at');
+  let first=true,initial=[],ready=false,pend=[];
+  const firstSnap=new Promise(res=>{
+    evQ.onSnapshot({includeMetadataChanges:false},q=>{
+      if(first){first=false;initial=q.docs.map(d=>d.data({serverTimestamps:'estimate'}));setConn(true);res();return;}
+      q.docChanges().forEach(c=>{if(c.type!=='added')return;const ev=c.doc.data({serverTimestamps:'estimate'});if(ev.from===CID)return;
+        if(ready)frame.contentWindow.__sync.apply(ev,false);else pend.push(ev);});
+      setConn(true);
+    },()=>{setConn(false);res();});
+  });
+  /* сброс урока: обе стороны перезагружаются */
+  base.onSnapshot(s=>{const d=s.data();if(d&&(d.sessionId||'main')!==session)location.reload();},()=>{});
+  const hash=s=>{let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
+  window.__sheetAPI={
+    mode:T?'t':'s',base,seed:hash(sid+session),attemptId:sid+'-'+session,started:sheet.sessionStarted||sheet.createdAt||new Date().toISOString(),
+    emit:ev=>{base.collection('events').add(Object.assign({},ev,{from:CID,n:++n,at:FV.serverTimestamp()})).catch(()=>setConn(false));},
+    ready:()=>{ready=true;const w=frame.contentWindow;initial.forEach(ev=>w.__sync.apply(ev,true));pend.forEach(ev=>w.__sync.apply(ev,false));pend=[];
+      $('#msg').hidden=true;frame.hidden=false;startPresence();}
+  };
+  await firstSnap;
+  /* верхняя полоска */
+  const bar=$('#bar');bar.hidden=false;
+  function setConn(on){const d=$('#conn');if(d){d.className='dot '+(on?'on':'off');d.title=on?'Связь есть':'Нет связи';}}
+  if(T){
+    bar.innerHTML='<b></b><span class="dot" id="peer" title="Ученик"></span><span class="st" id="peerTxt">Ученик не в сети</span><span class="sp"></span><button type="button" id="follow" aria-pressed="false">Следить за учеником</button><button type="button" id="call">Позвать сюда</button><button type="button" id="reset">Начать заново</button><a href="admin.html">Мои листы</a><span class="dot" id="conn"></span>';
+    bar.querySelector('b').textContent=sheet.student||sheet.title||'';
+  }else{
+    bar.innerHTML='<b></b><span class="sp"></span><span class="st">Связь</span><span class="dot" id="conn"></span>';
+    bar.querySelector('b').textContent=(sheet.student?sheet.student+' · ':'')+(sheet.title||'');
+  }
+  setConn(true);
+  /* лист */
+  let bridge='';try{bridge=await (await fetch('bridge.js',{cache:'no-cache'})).text();}catch(e){msg('Не загрузился сайт','Обнови страницу.');return;}
+  const RESET='<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>';
+  const frame=$('#frame');
+  frame.srcdoc='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'+RESET+'<script>'+bridge.replace(/<\/script/gi,'<\\/script')+'<\/script></head><body>'+sheet.html+'</body></html>';
+  /* присутствие */
+  function startPresence(){
+    const me=base.collection('presence').doc(T?'t':'s');let last=null;
+    const beat=()=>{const a=T?null:frame.contentWindow.__sync.anchor();last=a;me.set({at:FV.serverTimestamp(),anchor:a||null}).catch(()=>{});};
+    beat();setInterval(beat,15000);
+    if(!T){let tm=null;frame.contentWindow.addEventListener('scroll',()=>{clearTimeout(tm);tm=setTimeout(()=>{const a=frame.contentWindow.__sync.anchor();if(a!==last)beat();},900);},{passive:true});}
+    if(T){
+      let follow=false,peer=null;const fb=$('#follow');
+      fb.onclick=()=>{follow=!follow;fb.setAttribute('aria-pressed',String(follow));if(follow&&peer&&peer.anchor)frame.contentWindow.__sync.scrollTo(peer.anchor);};
+      $('#call').onclick=()=>{const a=frame.contentWindow.__sync.anchor();if(a!=null){window.__sheetAPI.emit({k:'goto',p:a});$('#call').textContent='Позвала';setTimeout(()=>{$('#call').textContent='Позвать сюда';},1500);}};
+      base.collection('presence').doc('s').onSnapshot(s=>{peer=s.data({serverTimestamps:'estimate'})||null;paint();if(follow&&peer&&peer.anchor)frame.contentWindow.__sync.scrollTo(peer.anchor);},()=>{});
+      const paint=()=>{const at=peer&&peer.at&&peer.at.toMillis?peer.at.toMillis():0;const on=at&&Date.now()-at<45000;$('#peer').className='dot '+(on?'on':'');$('#peerTxt').textContent=on?'Ученик в сети':'Ученик не в сети';};
+      setInterval(paint,10000);
+      let armed=false;const rb=$('#reset');
+      rb.onclick=async()=>{
+        if(!armed){armed=true;rb.classList.add('warn');rb.textContent='Стереть все ответы урока? Нажми ещё раз';setTimeout(()=>{armed=false;rb.classList.remove('warn');rb.textContent='Начать заново';},4000);return;}
+        rb.textContent='Стираю…';
+        try{for(;;){const q=await base.collection('events').limit(400).get();if(q.empty)break;const b=fdb.batch();q.docs.forEach(d=>b.delete(d.ref));await b.commit();}
+          await base.update({sessionId:'s'+Date.now().toString(36),sessionStarted:new Date().toISOString()});}
+        catch(e){rb.textContent='Не получилось';}
+      };
+    }
+  }
+})();
+</script>
+</body>
+</html>
