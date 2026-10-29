@@ -264,7 +264,7 @@ h2{font-size:1.35rem}
     window.__sheetAPI={
       mode:T?'t':'s',base,seed:hash(sheetId+session),attemptId:sheetId+'-'+session,started:sheet.sessionStarted||sheet.createdAt||new Date().toISOString(),
       badgeCounts:stu&&stu.stats?stu.stats.badges:null,
-      emit:ev=>{base.collection('events').add(Object.assign({},ev,{from:CID,n:++n,at:FV.serverTimestamp()})).catch(()=>setConn(false));},
+      emit:ev=>{base.collection('events').add(Object.assign(JSON.parse(JSON.stringify(ev)),{from:CID,n:++n,at:FV.serverTimestamp()})).catch(()=>setConn(false));},
       onFinish:T&&sheet.sid?finish:null,
       ready:()=>{ready=true;const w=frame.contentWindow;initial.forEach(ev=>w.__sync.apply(ev,true));pend.forEach(ev=>w.__sync.apply(ev,false));pend=[];
         $('#msg').hidden=true;frame.hidden=false;fit();startPresence();}

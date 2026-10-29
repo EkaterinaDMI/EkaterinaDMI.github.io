@@ -16,7 +16,8 @@
 
   /* ---------- хранилище ---------- */
   const base = API.base;
-  const clean = d => JSON.parse(JSON.stringify(d));
+  /* объекты создаём в окне сайта: Firestore не принимает объекты, созданные внутри листа (другое окно) */
+  const clean = d => parent.JSON.parse(JSON.stringify(d));
   const write = fn => T ? fn().then(() => undefined) : Promise.resolve();
   const snap = s => ({ id: s.id, exists: s.exists, data: () => s.data() });
   const qsnap = q => { const docs = q.docs.map(snap); return { docs, size: docs.length, empty: !docs.length, docChanges: () => docs.map((d, i) => ({ type: 'added', doc: d, oldIndex: -1, newIndex: i })) }; };
@@ -58,7 +59,7 @@
     bx.textContent = 'Картинка не загрузилась. ' + why + ' [' + (c || '—') + '; ' + (blob && blob.type || 'тип ?') + '; ' + Math.round((blob && blob.size || 0) / 1024) + ' КБ] Нажми, чтобы закрыть.'; }
   const assets = T ? {
     upload: async blob => { try { const d = await shrink(blob); const id = 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36);
-      await base.collection('blobs').doc(id).set({ d, at: Date.now() }); blobCache[id] = d; return { id, url: d, sizeBytes: d.length, contentType: 'image/jpeg' }; }
+      await base.collection('blobs').doc(id).set(clean({ d, at: Date.now() })); blobCache[id] = d; return { id, url: d, sizeBytes: d.length, contentType: 'image/jpeg' }; }
       catch (e) { imgErr(e, blob); throw e; } },
     delete: async id => { await base.collection('blobs').doc(id).delete(); return { deleted: true }; },
     list: async () => ({ assets: [], usage: {} })
