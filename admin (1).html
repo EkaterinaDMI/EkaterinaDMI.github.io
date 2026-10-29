@@ -7,12 +7,16 @@
 <title>Мои ученики</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Golos+Text:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>
 /* Layout: слева сетка карточек учеников, по нажатию — карточка ученика с уроком сегодня, прогрессом и листами */
-:root{--bg:#F3F1FB;--surface:#FFFFFF;--ink:#1D1A47;--muted:#5F5B8C;--line:#DEDAF2;--accent:#6A4BF0;--soft:#ECE7FF;--coral:#F2614A;--lemon:#FFD24D;--ok:#1F8A5B;--bad:#D63A45;
-  --f-d:"Unbounded","Golos Text",system-ui,sans-serif;--f:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-@media (prefers-color-scheme:dark){:root{--bg:#13112E;--surface:#1E1B45;--ink:#EEEBFF;--muted:#ABA6D6;--line:#332F66;--accent:#A08BFF;--soft:#2D2766;--coral:#FF8470;--ok:#5FD39B;--bad:#FF7A82;color-scheme:dark}}
+:root{
+  --bg:#FBEAA8;--surface:#FFFDF6;--ink:#2B2A28;--muted:#6F6650;--line:#E6D38C;
+  --accent:#C9432E;--accent-soft:#FCE3D3;--coral:#E9705F;--lemon:#F4C430;--mint:#3E8F68;
+  --sky1:#2B2A28;--sky2:#2B2A28;--skyink:#FBEAA8;--ok:#2F8A57;--bad:#C9432E;--soft:#FCE3D3;
+  --f-d:"Lora",Georgia,"Times New Roman",serif;--f:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f)}
@@ -67,6 +71,31 @@ input[type=text],select{color:var(--ink);background:var(--bg);border:1.5px solid
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:600;z-index:10;max-width:calc(100vw - 32px)}
 #login{text-align:center;max-width:420px;margin:60px auto 0}
 details summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+
+/* ---------- стиль канала ---------- */
+h1,h2{font-family:var(--f-d);font-style:italic;font-weight:700}
+h1{font-size:1.7rem}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand .me{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2.5px solid var(--ink);flex:none}
+.brand .ow{width:58px;height:auto;flex:none}
+.card,.sc,.sh{border:2px solid var(--ink);background:var(--surface)}
+.card{box-shadow:4px 4px 0 var(--ink)}
+.today{background:#FFF4CC}
+.sc:hover{border-color:var(--accent)}
+.sc .av,.head .av{background:var(--bg);border:2px solid var(--ink)}
+.sc .now{background:var(--accent-soft)}
+.add{border:2px dashed var(--ink);background:transparent;box-shadow:none}
+.b.quiet{border-color:var(--ink);color:var(--ink)}
+.b.hot{background:var(--accent);border-color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.b.main{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.stats div{background:var(--bg);border:1.5px solid var(--ink)}
+.stats b{font-family:var(--f-d);font-style:italic}
+.xp{border:2px solid var(--ink);height:14px;background:var(--surface)}
+.xp i{background:repeating-linear-gradient(-45deg,var(--accent) 0 10px,var(--coral) 10px 20px)}
+.sh.cur{box-shadow:inset 5px 0 0 var(--accent)}
+.pill{background:var(--accent-soft);color:var(--accent)}
+input[type=text],input[type=date],input[type=number],select{background:var(--surface);border:1.5px solid var(--ink);color:var(--ink);border-radius:10px;padding:8px 10px;width:100%;min-height:40px;font:inherit}
+@media (max-width:520px){.brand .ow{display:none}h1{font-size:1.4rem}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -76,7 +105,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><h1 id="siteName">Мои ученики</h1><span class="sp"></span><span class="muted" id="who"></span><button type="button" class="b quiet" id="logout" hidden>Выйти</button></div>
+  <div class="top"><span class="brand"><img class="me" id="meImg" alt="Екатерина"><h1 id="siteName">Мои ученики</h1><img class="ow" id="owImg" alt=""></span><span class="sp"></span><span class="muted" id="who"></span><button type="button" class="b quiet" id="logout" hidden>Выйти</button></div>
   <div id="login" class="card" hidden><h2>Вход для учителя</h2><p class="muted">Управлять уроками можно только с почты администратора.</p><div><button type="button" class="b main" id="loginBtn">Войти через Google</button></div><p class="muted" id="loginMsg"></p></div>
   <main id="app" hidden style="display:grid;gap:18px"></main>
 </div>
@@ -84,7 +113,7 @@ details summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 <script>
 (function(){
   const $=s=>document.querySelector(s);const K=window.KIT,esc=K.esc;
-  $('#siteName').textContent=window.SITE_NAME||'Мои ученики';
+  $('#siteName').textContent='Мои ученики';if(window.IMG){$('#meImg').src=IMG.teacher;$('#owImg').src=IMG.owlHi;}
   firebase.initializeApp(window.FB_CONFIG);
   const auth=firebase.auth(),fdb=firebase.firestore();
   const isAdmin=u=>u&&!u.isAnonymous&&(u.email||'').toLowerCase()===String(window.ADMIN_EMAIL).toLowerCase();
@@ -162,7 +191,19 @@ details summary{cursor:pointer;color:var(--muted);font-size:.9rem}
       '<section class="card today"><h3>Урок сегодня</h3>'+(cur?'<span class="t">'+esc(short(cur.title))+'</span><div class="row"><a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Начать урок</a><button type="button" class="b quiet" id="unset">Убрать из кабинета</button></div><span class="muted">Ученик видит кнопку «Начать урок» у себя в кабинете.</span>'
         :'<span class="muted">Урок не выбран. Добавь лист ниже или нажми «Сделать уроком сегодня» у готового листа.</span>')+'</section>'+
       '<section class="card"><h3>Добавить лист</h3><span class="muted">Файл листа «для сайта» от Claude. Он сразу станет уроком сегодня.</span><div class="row"><input type="file" id="file" accept=".html,text/html"><button type="button" class="b main" id="addSheet">Добавить</button></div><span class="muted" id="addMsg"></span></section>'+
-      '<section class="card"><h3>Листы и итоги</h3><div id="sheets" style="display:grid;gap:10px"></div></section>';
+      '<section class="card"><h3>Листы и итоги</h3><div id="sheets" style="display:grid;gap:10px"></div></section>'+
+      '<section class="card"><details><summary>Добавить урок, который прошёл до сайта</summary><div style="display:grid;gap:10px;margin-top:10px">'+
+        '<span class="muted">Урок попадёт в историю и прогресс ученика: очки, уровень, рейтинг.</span>'+
+        '<div class="row"><label class="f">Тема урока<input type="text" id="mTitle" placeholder="Пре- и при-, прямая речь"></label><label class="f" style="flex:0 1 170px">Дата<input type="date" id="mDate"></label></div>'+
+        '<div class="row"><label class="f" style="flex:0 1 160px">Решено заданий<input type="number" id="mSolved" min="0"></label><label class="f" style="flex:0 1 160px">Из них верно<input type="number" id="mCorrect" min="0"></label></div>'+
+        '<div class="row"><button type="button" class="b main" id="mAdd">Добавить урок</button><span class="muted" id="mMsg"></span></div>'+
+        (Object.keys(lessons).filter(k=>k.startsWith('m-')).length?'<div class="muted">Добавлены вручную: '+Object.keys(lessons).filter(k=>k.startsWith('m-')).map(k=>esc(lessons[k].title)+' ('+lessons[k].pct+'%)').join(', ')+'</div>':'')+
+      '</div></details></section>';
+    $('#mDate').value=new Date().toISOString().slice(0,10);
+    $('#mAdd').onclick=async()=>{const t=$('#mTitle').value.trim(),so=+$('#mSolved').value,co=+$('#mCorrect').value,d=$('#mDate').value;
+      if(!t)return $('#mMsg').textContent='Впиши тему урока.';if(!(so>0)||co<0||co>so)return $('#mMsg').textContent='Проверь числа: верных не больше, чем решено.';
+      const rec={title:t,date:d?new Date(d+'T12:00:00').toISOString():new Date().toISOString(),solved:so,correct:co,total:so,pct:Math.round(co/so*100),badges:[],perfect:so>=10&&co===so,manual:true};
+      try{await fdb.collection('students').doc(id).collection('lessons').doc('m-'+K.rid(8)).set(rec);await K.recompute(fdb,id);toast('Урок добавлен');load();}catch(e){$('#mMsg').textContent='Не сохранилось: '+(e.message||e);}};
     $('#back').onclick=showList;$('#edit').onclick=()=>editStudent(id);$('#cpStu').onclick=()=>copy(stuLink(s),'Ссылка ученика скопирована');
     const un=$('#unset');if(un)un.onclick=async()=>{await fdb.collection('students').doc(id).update({current:null});load();};
     $('#addSheet').onclick=async()=>{const f=$('#file').files[0];if(!f)return toast('Сначала выбери файл');const html=await f.text();
