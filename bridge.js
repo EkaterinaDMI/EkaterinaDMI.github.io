@@ -49,9 +49,17 @@
       while (d.length > 900000 && q > 0.3) { q -= 0.1; d = cv.toDataURL('image/jpeg', q); }
       URL.revokeObjectURL(url); d.length > 1000000 ? rej({ code: 'too_large' }) : res(d); };
     im.onerror = () => rej({ code: 'unsupported_type' }); im.src = url; }); }
+  function imgErr(e, blob){ const c = (e && (e.code || e.name)) || ''; const m = (e && e.message) || String(e);
+    const why = /permission/i.test(c + m) ? 'Нет прав на запись: открой урок кнопкой «Начать урок» в «Мои ученики», войдя под своей почтой.'
+      : c === 'unsupported_type' ? 'Браузер не смог открыть этот файл (часто это формат HEIC с iPhone). Сделай скриншот картинки и вставь его.'
+      : /quota|exhausted/i.test(c + m) ? 'Закончился бесплатный лимит базы на сегодня.' : 'Причина: ' + m;
+    console.error('upload', e); let bx = document.getElementById('imgErrBox');
+    if (!bx) { bx = document.createElement('div'); bx.id = 'imgErrBox'; bx.style.cssText = 'position:fixed;left:12px;right:12px;bottom:70px;z-index:99;background:#fff3f0;border:2px solid #d9534f;border-radius:12px;padding:10px 14px;font:14px/1.4 sans-serif;color:#333'; document.body.appendChild(bx); bx.onclick = () => bx.remove(); }
+    bx.textContent = 'Картинка не загрузилась. ' + why + ' [' + (c || '—') + '; ' + (blob && blob.type || 'тип ?') + '; ' + Math.round((blob && blob.size || 0) / 1024) + ' КБ] Нажми, чтобы закрыть.'; }
   const assets = T ? {
-    upload: async blob => { const d = await shrink(blob); const id = 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36);
-      await base.collection('blobs').doc(id).set({ d, at: Date.now() }); blobCache[id] = d; return { id, url: d, sizeBytes: d.length, contentType: 'image/jpeg' }; },
+    upload: async blob => { try { const d = await shrink(blob); const id = 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1e9).toString(36);
+      await base.collection('blobs').doc(id).set({ d, at: Date.now() }); blobCache[id] = d; return { id, url: d, sizeBytes: d.length, contentType: 'image/jpeg' }; }
+      catch (e) { imgErr(e, blob); throw e; } },
     delete: async id => { await base.collection('blobs').doc(id).delete(); return { deleted: true }; },
     list: async () => ({ assets: [], usage: {} })
   } : null;
