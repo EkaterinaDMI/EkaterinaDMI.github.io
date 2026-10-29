@@ -33,7 +33,8 @@
     doc: id => docRef(id ? ref.doc(id) : ref.doc(), c),
     get: () => ref.get().then(qsnap),
     where: () => coll(c), orderBy: () => coll(c), limit: () => coll(c),
-    onSnapshot: (cb, err) => { ref.get().then(q => cb(qsnap(q)), err || (() => {})); return () => {}; }
+    onSnapshot: (cb, err) => { ref.get().then(q => cb(qsnap(q)), err || (() => {})); return () => {}; },
+    watch: (cb, err) => ref.onSnapshot(q => cb(qsnap(q)), err || (() => {}))
   }; }
   const db = { collection: coll, doc: p => { const parts = p.split('/'); return docRef(base.collection(parts[0]).doc(parts[1])); } };
 
@@ -107,7 +108,8 @@
   };
 
   const css = document.createElement('style');
-  css.textContent = `.st-mode .tk-x,.st-mode .rv-tab,.st-mode .rv-panel,.st-mode .ui-add,.st-mode .ui-del,.st-mode #dictShow,.st-mode #dictDone,.st-mode .dlist input,.st-mode .dlist .dmark,.st-mode .wck .inline,.st-mode .nbq .opts,.st-mode .tchk,.st-mode .ui-card .opts,.st-mode .ui-card textarea,.st-mode #finBtn,.st-mode #redo,.st-mode #saveMsg,.st-mode .hw-head p,.st-mode #hwSave,.st-mode #hwCopy,.st-mode .hwd{display:none!important}`;
+  css.textContent = `.st-mode .tk-hidden{display:none!important}.st-mode nav.chips a.tk-off{display:none}
+.st-mode .tk-x,.st-mode .rv-tab,.st-mode .rv-panel,.st-mode .ui-add,.st-mode .ui-del,.st-mode #dictShow,.st-mode #dictDone,.st-mode .dlist input,.st-mode .dlist .dmark,.st-mode .wck .inline,.st-mode .nbq .opts,.st-mode .tchk,.st-mode .ui-card .opts,.st-mode .ui-card textarea,.st-mode #finBtn,.st-mode #redo,.st-mode #saveMsg,.st-mode .hw-head p,.st-mode #hwSave,.st-mode #hwCopy,.st-mode .hwd{display:none!important}`;
   document.head.appendChild(css);
   addEventListener('load', () => setTimeout(() => API.ready(), 400));
 })();

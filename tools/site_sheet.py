@@ -20,6 +20,12 @@ s = s.replace("if(st[key])set(true);", "if(st[key]&&!window.__ATTEMPT_ID)set(tru
 # тексты про claude.ai
 s = s.replace("Сохранение доступно, когда лист открыт в claude.ai под твоим аккаунтом.", "Отметки сохраняются на сайте.")
 s = s.replace("Результаты не отправлены: лист открыт не под твоим аккаунтом.", "Результаты не отправлены.")
+# картинки учителя появляются у ученика сразу (живая подписка на teacherimgs)
+_a = "dbx.collection('teacherimgs').get().then(q=>{\n      q.docs.map(x=>({id:x.id,d:x.data()})).sort((x,y)=>String(x.d.addedAt).localeCompare(String(y.d.addedAt))).forEach(({id,d})=>{render(id,d);const b=boxes[d.section];if(b)b.w.hidden=false;});\n    },()=>{});"
+if _a in s:
+    s = s.replace(_a, "const _ti=q=>{const seen=new Set();\n      q.docs.map(x=>({id:x.id,d:x.data()})).sort((x,y)=>String(x.d.addedAt).localeCompare(String(y.d.addedAt))).forEach(({id,d})=>{seen.add(id);render(id,d);const b=boxes[d.section];if(b)b.w.hidden=false;});\n      Object.keys(cards).forEach(id=>{if(!seen.has(id)){const c=cards[id];const k=reg.findIndex(i=>i.box===c);if(k>=0)reg.splice(k,1);c.remove();delete cards[id];}});update();};\n    const _tc=dbx.collection('teacherimgs');if(_tc.watch)_tc.watch(_ti);else _tc.get().then(_ti,()=>{});")
+else:
+    print('WARN: teacherimgs loader not found')
 open(dst, 'w', encoding='utf8').write(s)
 print('ok', len(s))
 
