@@ -125,29 +125,56 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     if(!isAdmin(u)){$('#app').hidden=true;$('#login').hidden=false;$('#logout').hidden=!u;$('#who').textContent=u&&!u.isAnonymous?u.email+' (не администратор)':'';return;}
     $('#login').hidden=true;$('#app').hidden=false;$('#logout').hidden=false;$('#who').textContent=u.email;load();
   });
-  let students=[],sheets=[],open=null;
+  let students=[],sheets=[],inbox=[],open=null;
   const stuLink=s=>site+'index.html?u='+s.id, tchLink=id=>site+'index.html?s='+id+'&t=1', sheetLink=id=>site+'index.html?s='+id;
   function copy(text,msg){try{navigator.clipboard.writeText(text).then(()=>toast(msg||'Скопировано'),()=>prompt('Скопируй:',text));}catch(e){prompt('Скопируй:',text);}}
   async function load(){
     const [a,b]=await Promise.all([fdb.collection('students').get(),fdb.collection('sheets').orderBy('createdAt','desc').get()]);
     students=a.docs.map(d=>Object.assign({id:d.id},d.data())).sort((x,y)=>String(x.name).localeCompare(String(y.name),'ru'));
-    sheets=b.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),sid:d.get('sid')||null,createdAt:d.get('createdAt')}));
+    sheets=b.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),sid:d.get('sid')||null,src:d.get('src')||null,createdAt:d.get('createdAt')}));
+    try{const r=await fetch('inbox/list.json?'+Date.now(),{cache:'no-store'});inbox=r.ok?(await r.json()):[];}catch(e){inbox=[];}
     open?showStudent(open):showList();
   }
   const sheetsOf=sid=>sheets.filter(s=>s.sid===sid);
+  /* новые листы, которые Claude выложил в папку inbox */
+  const pending=()=>inbox.filter(x=>!sheets.some(s=>s.src===x.file));
+  const norm=t=>String(t||'').trim().toLowerCase().replace(/ё/g,'е');
+  const pendingFor=s=>pending().filter(x=>norm(x.student)===norm(s.name));
+  async function addFromHtml(html,stu,src,makeCurrent){
+    if(!/window\.__ATTEMPT_ID/.test(html))throw new Error('Это лист не для сайта');
+    if(new Blob([html]).size>1000000)throw new Error('Лист слишком большой для сайта');
+    const m=html.match(/<title>([^<]*)<\/title>/i);const id=K.rid(12);
+    await fdb.collection('sheets').doc(id).set({title:m?m[1].trim():'Урок',student:stu.name,sid:stu.id,src:src||null,html,createdAt:new Date().toISOString(),sessionId:'main'});
+    if(makeCurrent)await fdb.collection('students').doc(stu.id).update({current:id});
+    return id;
+  }
+  async function addFromInbox(item,stu){
+    const r=await fetch('inbox/'+encodeURIComponent(item.file)+'?'+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('Файл не найден на сайте');
+    return addFromHtml(await r.text(),stu,item.file,true);
+  }
   const short=t=>String(t||'').replace(/^[^·]*·\s*/,'');
 
   /* ---------- список учеников ---------- */
   function showList(){
     open=null;history.replaceState(null,'',location.pathname);
     const free=sheets.filter(s=>!s.sid);
-    $('#app').innerHTML='<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
+    const P=pending();
+    $('#app').innerHTML=(P.length?'<section class="card today"><h2>Новые листы от Claude</h2><div id="inb" style="display:grid;gap:8px"></div></section>':'')+'<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
     const g=$('#grid');
     students.forEach(s=>{const st=s.stats||{};const lv=K.level(st.points||0);const cur=sheets.find(x=>x.id===s.current);
       const c=document.createElement('button');c.type='button';c.className='sc';
       c.innerHTML='<span class="av">'+esc(s.avatar||'🙂')+'</span><span class="nm">'+esc(s.name)+'</span><span class="meta">'+esc(s.grade||'')+(s.grade?' · ':'')+'ур. '+lv.n+' · '+(st.points||0)+' очк.</span>'+
         '<span class="now'+(cur?'':' no')+'">'+(cur?'Сегодня: '+esc(short(cur.title)):'Урок не выбран')+'</span>';
+      const np=pendingFor(s).length;if(np)c.insertAdjacentHTML('beforeend','<span class="now" style="background:#FFF4CC">Новый лист от Claude</span>');
       c.onclick=()=>showStudent(s.id);g.appendChild(c);});
+    P.forEach(it=>{const r=document.createElement('div');r.className='row';
+      const match=students.find(x=>norm(x.name)===norm(it.student));
+      r.innerHTML='<span style="flex:1 1 220px;min-width:0"><b></b><br><span class="muted"></span></span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(x=>'<option value="'+x.id+'"'+(match&&match.id===x.id?' selected':'')+'>'+esc(x.name)+'</option>').join('')+'</select><button type="button" class="b hot">Добавить</button>';
+      r.querySelector('b').textContent=it.title||it.file;r.querySelector('.muted').textContent=(it.note||'')+(it.added?' · '+K.fmtDate(it.added):'');
+      r.querySelector('button').onclick=async e=>{const v=r.querySelector('select').value;if(!v)return toast('Выбери ученика или сначала добавь его');const stu=students.find(x=>x.id===v);
+        e.target.textContent='Добавляю…';try{await addFromInbox(it,stu);toast('Лист добавлен, это урок сегодня у ученика '+stu.name);load();}catch(err){e.target.textContent='Добавить';toast('Не получилось: '+(err.message||err));}};
+      $('#inb').appendChild(r);});
     const add=document.createElement('button');add.type='button';add.className='sc add';add.innerHTML='<b style="font-size:1.6rem">+</b><span>Добавить ученика</span>';add.onclick=()=>editStudent(null);g.appendChild(add);
     free.forEach(sh=>{const r=document.createElement('div');r.className='row';
       r.innerHTML='<span style="flex:1 1 200px;min-width:0">'+esc(sh.title)+'</span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('')+'</select><button type="button" class="b">Привязать</button>';
@@ -190,7 +217,8 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
         '<div class="row"><span class="muted">Ссылка ученика на весь год:</span></div><div class="row"><span class="link">'+esc(stuLink(s))+'</span><button type="button" class="b" id="cpStu">Скопировать</button><a class="b quiet" href="'+esc(stuLink(s))+'" target="_blank" rel="noopener">Как видит ученик</a></div></section>'+
       '<section class="card today"><h3>Урок сегодня</h3>'+(cur?'<span class="t">'+esc(short(cur.title))+'</span><div class="row"><a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Начать урок</a><button type="button" class="b quiet" id="unset">Убрать из кабинета</button></div><span class="muted">Ученик видит кнопку «Начать урок» у себя в кабинете.</span>'
         :'<span class="muted">Урок не выбран. Добавь лист ниже или нажми «Сделать уроком сегодня» у готового листа.</span>')+'</section>'+
-      '<section class="card"><h3>Добавить лист</h3><span class="muted">Файл листа «для сайта» от Claude. Он сразу станет уроком сегодня.</span><div class="row"><input type="file" id="file" accept=".html,text/html"><button type="button" class="b main" id="addSheet">Добавить</button></div><span class="muted" id="addMsg"></span></section>'+
+      pendingFor(s).map((it,i)=>'<section class="card today"><h3>Новый лист от Claude</h3><span class="t">'+esc(short(it.title||it.file))+'</span>'+(it.note?'<span class="muted">'+esc(it.note)+'</span>':'')+'<div class="row"><button type="button" class="b hot" data-inb="'+i+'">Добавить и сделать уроком сегодня</button></div></section>').join('')+
+      '<section class="card"><h3>Добавить лист из файла</h3><span class="muted">Если лист пришёл файлом. Он сразу станет уроком сегодня.</span><div class="row"><input type="file" id="file" accept=".html,text/html"><button type="button" class="b main" id="addSheet">Добавить</button></div><span class="muted" id="addMsg"></span></section>'+
       '<section class="card"><h3>Листы и итоги</h3><div id="sheets" style="display:grid;gap:10px"></div></section>'+
       '<section class="card"><details><summary>Добавить урок, который прошёл до сайта</summary><div style="display:grid;gap:10px;margin-top:10px">'+
         '<span class="muted">Урок попадёт в историю и прогресс ученика: очки, уровень, рейтинг.</span>'+
@@ -204,14 +232,14 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
       if(!t)return $('#mMsg').textContent='Впиши тему урока.';if(!(so>0)||co<0||co>so)return $('#mMsg').textContent='Проверь числа: верных не больше, чем решено.';
       const rec={title:t,date:d?new Date(d+'T12:00:00').toISOString():new Date().toISOString(),solved:so,correct:co,total:so,pct:Math.round(co/so*100),badges:[],perfect:so>=10&&co===so,manual:true};
       try{await fdb.collection('students').doc(id).collection('lessons').doc('m-'+K.rid(8)).set(rec);await K.recompute(fdb,id);toast('Урок добавлен');load();}catch(e){$('#mMsg').textContent='Не сохранилось: '+(e.message||e);}};
+    const PS=pendingFor(s);document.querySelectorAll('[data-inb]').forEach(b=>b.onclick=async()=>{b.textContent='Добавляю…';try{await addFromInbox(PS[+b.dataset.inb],s);toast('Лист добавлен, это урок сегодня');load();}catch(err){b.textContent='Добавить и сделать уроком сегодня';toast('Не получилось: '+(err.message||err));}});
     $('#back').onclick=showList;$('#edit').onclick=()=>editStudent(id);$('#cpStu').onclick=()=>copy(stuLink(s),'Ссылка ученика скопирована');
     const un=$('#unset');if(un)un.onclick=async()=>{await fdb.collection('students').doc(id).update({current:null});load();};
     $('#addSheet').onclick=async()=>{const f=$('#file').files[0];if(!f)return toast('Сначала выбери файл');const html=await f.text();
       if(!/window\.__ATTEMPT_ID/.test(html))return $('#addMsg').textContent='Это лист не для сайта. Попроси у Claude версию «для сайта».';
       if(new Blob([html]).size>1000000)return $('#addMsg').textContent='Файл слишком большой для сайта.';
-      const m=html.match(/<title>([^<]*)<\/title>/i);const sid=K.rid(12);$('#addMsg').textContent='Сохраняю…';
-      try{await fdb.collection('sheets').doc(sid).set({title:m?m[1].trim():'Урок',student:s.name,sid:id,html,createdAt:new Date().toISOString(),sessionId:'main'});
-        await fdb.collection('students').doc(id).update({current:sid});toast('Лист добавлен, это урок сегодня');load();}catch(e){$('#addMsg').textContent='Не сохранилось: '+(e.message||e);}};
+      $('#addMsg').textContent='Сохраняю…';
+      try{await addFromHtml(html,s,null,true);toast('Лист добавлен, это урок сегодня');load();}catch(e){$('#addMsg').textContent='Не сохранилось: '+(e.message||e);}};
     const box=$('#sheets');
     if(!list.length)box.innerHTML='<p class="muted">Листов пока нет.</p>';
     list.forEach(sh=>{const l=lessons[sh.id];const c=document.createElement('div');c.className='sh'+(sh.id===s.current?' cur':'');
