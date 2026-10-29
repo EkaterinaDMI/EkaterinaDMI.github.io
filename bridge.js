@@ -7,6 +7,7 @@
   const T = API.mode === 't';
   document.documentElement.classList.add(T ? 'tc-mode' : 'st-mode');
   window.__ATTEMPT_ID = API.attemptId;
+  if (API.badgeCounts) window.__badgeCounts = API.badgeCounts;
   window.__STARTED = API.started;
 
   /* одинаковые случайные числа у учителя и ученика */
@@ -19,16 +20,17 @@
   const write = fn => T ? fn().then(() => undefined) : Promise.resolve();
   const snap = s => ({ id: s.id, exists: s.exists, data: () => s.data() });
   const qsnap = q => { const docs = q.docs.map(snap); return { docs, size: docs.length, empty: !docs.length, docChanges: () => docs.map((d, i) => ({ type: 'added', doc: d, oldIndex: -1, newIndex: i })) }; };
-  function docRef(r){ return {
+  function earnedBadges(){ return [...document.querySelectorAll('#badgeList .badge.got')].map(x => { const c = x.cloneNode(true); const bi = c.querySelector('.bi'); const ic = bi ? bi.textContent : '⭐'; c.querySelectorAll('.bi,.bc').forEach(z => z.remove()); return { ic, t: c.textContent.trim() }; }); }
+  function docRef(r, cname){ return {
     id: r.id,
     get: () => r.get().then(snap),
-    set: d => write(() => r.set(clean(d))),
+    set: d => { if (T && cname === 'attempts' && d && d.finished && API.onFinish) { try { API.onFinish(clean(d), earnedBadges()); } catch (e) {} } return write(() => r.set(clean(d))); },
     update: d => write(() => r.update(clean(d))),
     delete: () => write(() => r.delete()),
     onSnapshot: (cb, err) => { r.get().then(s => cb(snap(s)), err || (() => {})); return () => {}; }
   }; }
   function coll(c){ const ref = base.collection(c); return {
-    doc: id => docRef(id ? ref.doc(id) : ref.doc()),
+    doc: id => docRef(id ? ref.doc(id) : ref.doc(), c),
     get: () => ref.get().then(qsnap),
     where: () => coll(c), orderBy: () => coll(c), limit: () => coll(c),
     onSnapshot: (cb, err) => { ref.get().then(q => cb(qsnap(q)), err || (() => {})); return () => {}; }
@@ -92,12 +94,15 @@
       if (ev.k === 'click') { const el = byPath(ev.p); if (el) el.click(); }
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
+      else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(ev); }
       else if (ev.k === 'goto' && !replay) { const el = byPath(ev.p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     } catch (err) { console.warn('sync', err); }
   }
-  function anchor(){ const el = document.elementFromPoint(Math.round(innerWidth / 2), 70); const a = el && el.closest('.q,.ex,.nb,.theory,.memo,.part-head,section.part,.hwc'); return a ? pathOf(a) : null; }
+  function anchor(){ for (const f of [0.3, 0.45, 0.2, 0.6]) { const el = document.elementFromPoint(Math.round(innerWidth / 2), Math.round(innerHeight * f)); const a = el && !el.closest('nav.chips,#dwBar,.progress') && el.closest('.q,.ex,.nb,.theory,.memo,.part-head,.ui-card,.hwc,section.part'); if (a) return pathOf(a); } return null; }
+  window.__dwSync = { path: pathOf, byPath, emit: ev => send(ev) };
   window.__sync = {
     apply, anchor,
+    section: p => { const el = byPath(p); const sec = el && el.closest('section.part'); const h = sec && sec.querySelector('h2'); return h ? h.textContent.trim() : ''; },
     scrollTo: p => { const el = byPath(p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   };
 
