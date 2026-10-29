@@ -94,7 +94,7 @@ h1{font-size:1.7rem}
 .xp i{background:repeating-linear-gradient(-45deg,var(--accent) 0 10px,var(--coral) 10px 20px)}
 .sh.cur{box-shadow:inset 5px 0 0 var(--accent)}
 .pill{background:var(--accent-soft);color:var(--accent)}
-input[type=text],select{background:var(--surface);border:1.5px solid var(--ink)}
+input[type=text],input[type=date],input[type=number],select{background:var(--surface);border:1.5px solid var(--ink);color:var(--ink);border-radius:10px;padding:8px 10px;width:100%;min-height:40px;font:inherit}
 @media (max-width:520px){.brand .ow{display:none}h1{font-size:1.4rem}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -191,7 +191,19 @@ input[type=text],select{background:var(--surface);border:1.5px solid var(--ink)}
       '<section class="card today"><h3>Урок сегодня</h3>'+(cur?'<span class="t">'+esc(short(cur.title))+'</span><div class="row"><a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Начать урок</a><button type="button" class="b quiet" id="unset">Убрать из кабинета</button></div><span class="muted">Ученик видит кнопку «Начать урок» у себя в кабинете.</span>'
         :'<span class="muted">Урок не выбран. Добавь лист ниже или нажми «Сделать уроком сегодня» у готового листа.</span>')+'</section>'+
       '<section class="card"><h3>Добавить лист</h3><span class="muted">Файл листа «для сайта» от Claude. Он сразу станет уроком сегодня.</span><div class="row"><input type="file" id="file" accept=".html,text/html"><button type="button" class="b main" id="addSheet">Добавить</button></div><span class="muted" id="addMsg"></span></section>'+
-      '<section class="card"><h3>Листы и итоги</h3><div id="sheets" style="display:grid;gap:10px"></div></section>';
+      '<section class="card"><h3>Листы и итоги</h3><div id="sheets" style="display:grid;gap:10px"></div></section>'+
+      '<section class="card"><details><summary>Добавить урок, который прошёл до сайта</summary><div style="display:grid;gap:10px;margin-top:10px">'+
+        '<span class="muted">Урок попадёт в историю и прогресс ученика: очки, уровень, рейтинг.</span>'+
+        '<div class="row"><label class="f">Тема урока<input type="text" id="mTitle" placeholder="Пре- и при-, прямая речь"></label><label class="f" style="flex:0 1 170px">Дата<input type="date" id="mDate"></label></div>'+
+        '<div class="row"><label class="f" style="flex:0 1 160px">Решено заданий<input type="number" id="mSolved" min="0"></label><label class="f" style="flex:0 1 160px">Из них верно<input type="number" id="mCorrect" min="0"></label></div>'+
+        '<div class="row"><button type="button" class="b main" id="mAdd">Добавить урок</button><span class="muted" id="mMsg"></span></div>'+
+        (Object.keys(lessons).filter(k=>k.startsWith('m-')).length?'<div class="muted">Добавлены вручную: '+Object.keys(lessons).filter(k=>k.startsWith('m-')).map(k=>esc(lessons[k].title)+' ('+lessons[k].pct+'%)').join(', ')+'</div>':'')+
+      '</div></details></section>';
+    $('#mDate').value=new Date().toISOString().slice(0,10);
+    $('#mAdd').onclick=async()=>{const t=$('#mTitle').value.trim(),so=+$('#mSolved').value,co=+$('#mCorrect').value,d=$('#mDate').value;
+      if(!t)return $('#mMsg').textContent='Впиши тему урока.';if(!(so>0)||co<0||co>so)return $('#mMsg').textContent='Проверь числа: верных не больше, чем решено.';
+      const rec={title:t,date:d?new Date(d+'T12:00:00').toISOString():new Date().toISOString(),solved:so,correct:co,total:so,pct:Math.round(co/so*100),badges:[],perfect:so>=10&&co===so,manual:true};
+      try{await fdb.collection('students').doc(id).collection('lessons').doc('m-'+K.rid(8)).set(rec);await K.recompute(fdb,id);toast('Урок добавлен');load();}catch(e){$('#mMsg').textContent='Не сохранилось: '+(e.message||e);}};
     $('#back').onclick=showList;$('#edit').onclick=()=>editStudent(id);$('#cpStu').onclick=()=>copy(stuLink(s),'Ссылка ученика скопирована');
     const un=$('#unset');if(un)un.onclick=async()=>{await fdb.collection('students').doc(id).update({current:null});load();};
     $('#addSheet').onclick=async()=>{const f=$('#file').files[0];if(!f)return toast('Сначала выбери файл');const html=await f.text();
