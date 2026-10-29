@@ -125,7 +125,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     if(!isAdmin(u)){$('#app').hidden=true;$('#login').hidden=false;$('#logout').hidden=!u;$('#who').textContent=u&&!u.isAnonymous?u.email+' (не администратор)':'';return;}
     $('#login').hidden=true;$('#app').hidden=false;$('#logout').hidden=false;$('#who').textContent=u.email;load();
   });
-  let students=[],sheets=[],inbox=[],open=null;
+  let students=[],sheets=[],inbox=[],roster=[],open=null;
   const stuLink=s=>site+'index.html?u='+s.id, tchLink=id=>site+'index.html?s='+id+'&t=1', sheetLink=id=>site+'index.html?s='+id;
   function copy(text,msg){try{navigator.clipboard.writeText(text).then(()=>toast(msg||'Скопировано'),()=>prompt('Скопируй:',text));}catch(e){prompt('Скопируй:',text);}}
   async function load(){
@@ -133,13 +133,26 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     students=a.docs.map(d=>Object.assign({id:d.id},d.data())).sort((x,y)=>String(x.name).localeCompare(String(y.name),'ru'));
     sheets=b.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),sid:d.get('sid')||null,src:d.get('src')||null,createdAt:d.get('createdAt')}));
     try{const r=await fetch('inbox/list.json?'+Date.now(),{cache:'no-store'});inbox=r.ok?(await r.json()):[];}catch(e){inbox=[];}
+    try{const r=await fetch('inbox/students.json?'+Date.now(),{cache:'no-store'});roster=r.ok?(await r.json()):[];}catch(e){roster=[];}
     open?showStudent(open):showList();
   }
   const sheetsOf=sid=>sheets.filter(s=>s.sid===sid);
   /* новые листы, которые Claude выложил в папку inbox */
   const pending=()=>inbox.filter(x=>!sheets.some(s=>s.src===x.file));
   const norm=t=>String(t||'').trim().toLowerCase().replace(/ё/g,'е');
-  const pendingFor=s=>pending().filter(x=>norm(x.student)===norm(s.name));
+  const pendingFor=s=>pending().filter(x=>(x.key&&s.key)?x.key===s.key:norm(x.student)===norm(s.name));
+  const findStu=r=>students.find(s=>s.key===r.key)||students.find(s=>!s.key&&norm(s.name)===norm(r.name)&&norm(s.grade||'')===norm(r.grade));
+  const missing=()=>roster.filter(r=>!findStu(r));
+  async function importRoster(){
+    const btn=$('#rosterGo');if(btn){btn.disabled=true;btn.textContent='Добавляю…';}
+    let n=0;
+    for(const r of roster){const ex=findStu(r);
+      try{if(ex){if(!ex.key)await fdb.collection('students').doc(ex.id).update({key:r.key});continue;}
+        const av=K.AVATARS[Math.floor(Math.random()*K.AVATARS.length)];
+        await fdb.collection('students').doc(K.rid(14)).set({name:r.name,grade:r.grade,avatar:av,inBoard:true,key:r.key,bid:K.rid(10),current:null,createdAt:new Date().toISOString(),stats:K.aggregate([])});n++;}
+      catch(e){toast('Не получилось: '+(e.message||e));}}
+    toast(n?'Добавлено учеников: '+n:'Все ученики уже на сайте');load();
+  }
   async function addFromHtml(html,stu,src,makeCurrent){
     if(!/window\.__ATTEMPT_ID/.test(html))throw new Error('Это лист не для сайта');
     if(new Blob([html]).size>1000000)throw new Error('Лист слишком большой для сайта');
@@ -160,7 +173,9 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     open=null;history.replaceState(null,'',location.pathname);
     const free=sheets.filter(s=>!s.sid);
     const P=pending();
-    $('#app').innerHTML=(P.length?'<section class="card today"><h2>Новые листы от Claude</h2><div id="inb" style="display:grid;gap:8px"></div></section>':'')+'<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
+    const M=missing();
+    $('#app').innerHTML=(M.length?'<section class="card today"><h2>Ученики из кабинета Claude</h2><p class="muted">Ещё нет на сайте: '+M.map(r=>esc(r.name)+' ('+esc(r.grade)+')').join(', ')+'.</p><div class="row"><button type="button" class="b main" id="rosterGo">Добавить всех ('+M.length+')</button></div></section>':'')+(P.length?'<section class="card today"><h2>Новые листы от Claude</h2><div id="inb" style="display:grid;gap:8px"></div></section>':'')+'<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
+    const rg=$('#rosterGo');if(rg)rg.onclick=importRoster;
     const g=$('#grid');
     students.forEach(s=>{const st=s.stats||{};const lv=K.level(st.points||0);const cur=sheets.find(x=>x.id===s.current);
       const c=document.createElement('button');c.type='button';c.className='sc';

@@ -1,0 +1,77 @@
+[
+ {
+  "key": "danya",
+  "name": "Даня",
+  "grade": "9 класс"
+ },
+ {
+  "key": "nikita9",
+  "name": "Никита",
+  "grade": "9 класс"
+ },
+ {
+  "key": "vlad",
+  "name": "Влад",
+  "grade": "8 класс"
+ },
+ {
+  "key": "denis",
+  "name": "Денис",
+  "grade": "7 класс"
+ },
+ {
+  "key": "sasha",
+  "name": "Саша",
+  "grade": "7 класс"
+ },
+ {
+  "key": "alika",
+  "name": "Алика",
+  "grade": "7 класс"
+ },
+ {
+  "key": "liza",
+  "name": "Лиза",
+  "grade": "7 класс"
+ },
+ {
+  "key": "fedya",
+  "name": "Федя",
+  "grade": "6 класс"
+ },
+ {
+  "key": "laura",
+  "name": "Лаура",
+  "grade": "6 класс"
+ },
+ {
+  "key": "vika",
+  "name": "Вика",
+  "grade": "6 класс"
+ },
+ {
+  "key": "adriana",
+  "name": "Адриана",
+  "grade": "6 класс"
+ },
+ {
+  "key": "lena",
+  "name": "Лена",
+  "grade": "6 класс"
+ },
+ {
+  "key": "filipp",
+  "name": "Филипп",
+  "grade": "4 класс"
+ },
+ {
+  "key": "nikita",
+  "name": "Никита",
+  "grade": "4 класс"
+ },
+ {
+  "key": "nika",
+  "name": "Ника",
+  "grade": "4 класс"
+ }
+]
