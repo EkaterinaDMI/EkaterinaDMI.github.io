@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'ekaterina.belyakova.smo@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    function signedIn() { return request.auth != null; }
+
+    match /students/{sid} {
+      allow get: if signedIn();
+      allow list, create, update, delete: if isAdmin();
+      match /lessons/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+      }
+    }
+    match /board/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /sheets/{sid} {
+      allow get: if signedIn();
+      allow list, create, update, delete: if isAdmin();
+      match /events/{id} {
+        allow read, create: if signedIn();
+        allow update, delete: if isAdmin();
+      }
+      match /presence/{role} {
+        allow read, write: if signedIn();
+      }
+      match /attempts/{id} {
+        allow read: if signedIn();
+        allow create, update, delete: if isAdmin();
+      }
+      match /{other}/{id} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+      }
+    }
+  }
+}
