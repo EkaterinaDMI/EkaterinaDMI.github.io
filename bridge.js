@@ -104,12 +104,15 @@
       if (ev.k === 'click') { const el = byPath(ev.p); if (el) el.click(); }
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
-      else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(ev); }
+      else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
       else if (ev.k === 'goto' && !replay) { const el = byPath(ev.p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     } catch (err) { console.warn('sync', err); }
   }
   function anchor(){ for (const f of [0.3, 0.45, 0.2, 0.6]) { const el = document.elementFromPoint(Math.round(innerWidth / 2), Math.round(innerHeight * f)); const a = el && !el.closest('nav.chips,#dwBar,.progress') && el.closest('.q,.ex,.nb,.theory,.memo,.part-head,.ui-card,.hwc,section.part'); if (a) return pathOf(a); } return null; }
-  window.__dwSync = { path: pathOf, byPath, emit: ev => send(ev) };
+  /* линии рисунка: база не хранит массив внутри массива, поэтому точки уходят строкой */
+  const packDraw = ev => { if (ev && ev.k === 'dadd' && ev.s && Array.isArray(ev.s.pts)) { const st = Object.assign({}, ev.s); st.pj = JSON.stringify(st.pts.map(q => [Math.round(q[0] * 1e4) / 1e4, Math.round(q[1] * 1e4) / 1e4])); delete st.pts; return { k: 'dadd', s: st }; } return ev; };
+  const unpackDraw = ev => { if (ev && ev.k === 'dadd' && ev.s && ev.s.pj && !ev.s.pts) { const st = Object.assign({}, ev.s); try { st.pts = JSON.parse(st.pj); } catch (e) { st.pts = []; } return { k: 'dadd', s: st }; } return ev; };
+  window.__dwSync = { path: pathOf, byPath, emit: ev => send(packDraw(ev)) };
   window.__sync = {
     apply, anchor,
     section: p => { const el = byPath(p); const sec = el && el.closest('section.part'); const h = sec && sec.querySelector('h2'); return h ? h.textContent.trim() : ''; },
