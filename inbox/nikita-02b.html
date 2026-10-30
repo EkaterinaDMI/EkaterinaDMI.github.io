@@ -609,7 +609,9 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
     <a href="#odn2" class="c-nb"><span>7</span>Упр. 40</a>
     <a href="#comma" class="c-sc"><span>8</span>Запятые</a>
     <a href="#odn3" class="c-nb"><span>9</span>Упр. 42 и 47</a>
-    <a href="#clap" class="c-sc"><span>10</span>Лови ошибку и блиц</a>
+    <a href="#slozh" class="c-sc"><span>10</span>Простое или сложное</a>
+    <a href="#slozh2" class="c-nb"><span>11</span>Разбор в тетради</a>
+    <a href="#clap" class="c-sc"><span>12</span>Лови ошибку и блиц</a>
     <a href="#hw"><span>ДЗ</span>Домашнее задание</a>
   </div>
 </nav>
@@ -619,7 +621,7 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 <button class="rv-tab" type="button" id="rvTab">Повторить на след. уроке</button>
 <aside class="rv-panel" id="rvPanel" hidden aria-label="Темы на повторение">
   <div class="rv-head"><b>Повторить на следующем уроке</b><button class="rv-x" type="button" id="rvClose">Свернуть</button></div>
-  <div class="rv-body"><label><input type="checkbox" id="rv0" data-t="Словарные слова"><span>Словарные слова</span></label><label><input type="checkbox" id="rv1" data-t="Непроизносимые согласные: есть т или нет"><span>Непроизносимые согласные: есть т или нет</span></label><label><input type="checkbox" id="rv2" data-t="Безударные гласные в корне"><span>Безударные гласные в корне</span></label><label><input type="checkbox" id="rv3" data-t="Парные согласные"><span>Парные согласные</span></label><label><input type="checkbox" id="rv4" data-t="Однородные члены"><span>Однородные члены</span></label><label><input type="checkbox" id="rv5" data-t="Запятые при однородных членах"><span>Запятые при однородных членах</span></label><label><input type="checkbox" id="rv6" data-t="Союзы а, но"><span>Союзы а, но</span></label><label><input type="checkbox" id="rv7" data-t="Внимание: пропуски и перестановки букв"><span>Внимание: пропуски и перестановки букв</span></label><label class="label" for="rvNote">Заметка</label><textarea id="rvNote" placeholder="Что ещё учесть"></textarea></div>
+  <div class="rv-body"><label><input type="checkbox" id="rv0" data-t="Простое и сложное предложение"><span>Простое и сложное предложение</span></label><label><input type="checkbox" id="rv1" data-t="Словарные слова"><span>Словарные слова</span></label><label><input type="checkbox" id="rv2" data-t="Непроизносимые согласные: есть т или нет"><span>Непроизносимые согласные: есть т или нет</span></label><label><input type="checkbox" id="rv3" data-t="Безударные гласные в корне"><span>Безударные гласные в корне</span></label><label><input type="checkbox" id="rv4" data-t="Парные согласные"><span>Парные согласные</span></label><label><input type="checkbox" id="rv5" data-t="Однородные члены"><span>Однородные члены</span></label><label><input type="checkbox" id="rv6" data-t="Запятые при однородных членах"><span>Запятые при однородных членах</span></label><label><input type="checkbox" id="rv7" data-t="Союзы а, но"><span>Союзы а, но</span></label><label><input type="checkbox" id="rv8" data-t="Внимание: пропуски и перестановки букв"><span>Внимание: пропуски и перестановки букв</span></label><label class="label" for="rvNote">Заметка</label><textarea id="rvNote" placeholder="Что ещё учесть"></textarea></div>
   <div class="rv-msg" id="rvMsg"></div>
 </aside>
 <canvas class="dw-canvas" id="dwCanvas" aria-hidden="true"></canvas>
@@ -742,8 +744,21 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 </ol><div class="nbmark" data-name="В тетрадь: упр. 47"></div></div>
 </section>
 
+<section class="part sec-sc" id="slozh">
+  <div class="part-head"><span class="num">ШАГ 10 · ПОВТОРЯЕМ</span><span class="mode m-sc">☝ НА ЭКРАНЕ</span><h2>Простое или сложное?</h2></div>
+  <div class="theory"><span class="label">Правило · простое и сложное предложение</span><p class="rule"><b>Простое</b> предложение: одна грамматическая основа. В нём могут быть однородные члены: <i>Мальчики <u>бегали</u> и <u>смеялись</u>.</i> Основа одна: мальчики бегали, смеялись.</p><p class="rule"><b>Сложное</b> предложение: две или больше грамматических основ. <i>Мальчики бегали, а девочки смеялись.</i> Основы: мальчики бегали; девочки смеялись. Части сложного предложения разделяем запятой, даже перед <b>и</b>.</p></div>
+  <div class="memo"><span class="label">Лайфхак</span><p>Сначала найди все основы. Одна основа: простое, перед одиночным «и» запятая не нужна. Две основы: сложное, запятая нужна.</p></div>
+  <div class="ex" id="ex-sl1"><div class="ex-head"><span class="tag">Ступень 1</span><span class="ex-task">Найди основы. Это простое предложение с однородными членами или сложное?</span></div></div>
+  <div class="ex" id="ex-sl2"><div class="ex-head"><span class="tag">Ступень 2</span><span class="ex-task">Поставь запятые, где нужно. Нажимай на квадратик между словами.</span></div></div>
+</section>
+
+<section class="part sec-nb" id="slozh2">
+  <div class="part-head"><span class="num">ШАГ 11 · ПОВТОРЯЕМ</span><span class="mode m-nb">✎ В ТЕТРАДИ</span><h2>Простое или сложное: в тетради</h2></div>
+  <div class="nb"><span class="label nb-l">В тетрадь · разбор</span><ol><li>Спиши, расставляя запятые. Подчеркни грамматические основы. Над каждым предложением напиши: «простое» или «сложное».<br><span class="nb-s">1) Скворцы прилетели и стали вить гнёзда. 2) Скворцы прилетели и в саду зазвенели песни. 3) Зашумел лес закачались деревья. 4) Ветер шумел в вершинах сосен и качал ветки. 5) Ярко светит солнце но воздух ещё холодный.</span></li></ol><div class="wck" data-name="Простое или сложное" data-items="1) Скворцы прилетели и стали вить гнёзда. Простое.|2) Скворцы прилетели, и в саду зазвенели песни. Сложное.|3) Зашумел лес, закачались деревья. Сложное.|4) Ветер шумел в вершинах сосен и качал ветки. Простое.|5) Ярко светит солнце, но воздух ещё холодный. Сложное."></div></div>
+</section>
+
 <section class="part sec-sc" id="clap">
-  <div class="part-head"><span class="num">ШАГ 10 · ИГРА</span><span class="mode m-sc">☝ НА ЭКРАНЕ</span><h2>Лови ошибку и блиц</h2></div>
+  <div class="part-head"><span class="num">ШАГ 12 · ИГРА</span><span class="mode m-sc">☝ НА ЭКРАНЕ</span><h2>Лови ошибку и блиц</h2></div>
   <div class="ex" id="ex-catch"><div class="ex-head"><span class="tag">Лови ошибку</span><span class="ex-task">Слова появляются по одному. Как только увидишь слово, где буква потерялась, переставлена или заменена, жми кнопку или пробел. Нажмёшь на правильное слово, получишь штраф.</span></div></div>
   <div class="theory"><p>Блиц: словарные слова, т или нет, гласные и согласные в корне. Пять верных ответов подряд дают множитель очков, ошибка отнимает 3 секунды.</p></div>
   <div class="ex" id="ex-clap"></div>
@@ -894,7 +909,7 @@ const BADGES=[
  {id:'mine',ic:'🧨',t:'Сапёр',sec:'#mine,#tnet'},
  {id:'roots',ic:'🧺',t:'Знаток корня',sec:'#roots'},
  {id:'odn',ic:'🧩',t:'Однородный мастер',sec:'#odn,#odn2'},
- {id:'comma',ic:'✒️',t:'Мастер запятых',sec:'#comma,#odn3'},
+ {id:'comma',ic:'✒️',t:'Мастер запятых',sec:'#comma,#odn3,#slozh,#slozh2'},
  {id:'blitz',ic:'⚡',t:'Молния',blitz:true},
  {id:'gold',ic:'🏆',t:'Урок без ошибок',gold:true}
 ];
@@ -1230,6 +1245,28 @@ wide('#ex-o1');wide('#ex-o2');
 
 
 
+const PS=['простое с однородными членами','сложное'];
+OQ('#ex-sl1',[
+ ['Солнце светило и грело.',PS,'простое с однородными членами','Одна основа: солнце светило, грело.'],
+ ['Солнце светило, и снег таял.',PS,'сложное','Две основы: солнце светило; снег таял.'],
+ ['Дети катались на санках и лепили снеговика.',PS,'простое с однородными членами','Одна основа: дети катались, лепили.'],
+ ['Дети катались на санках, а взрослые чистили дорожки.',PS,'сложное','Две основы: дети катались; взрослые чистили.'],
+ ['Подул ветер, пошёл снег.',PS,'сложное','Две основы: ветер подул; снег пошёл.'],
+ ['Ветер дул, гудел, выл.',PS,'простое с однородными членами','Одна основа: ветер дул, гудел, выл.'],
+ ['Мама и бабушка пекли пироги.',PS,'простое с однородными членами','Одна основа: мама и бабушка пекли.'],
+ ['Мама пекла пироги, бабушка варила суп.',PS,'сложное','Две основы: мама пекла; бабушка варила.'],
+ ['Наступила весна, но снег ещё лежал.',PS,'сложное','Две основы: весна наступила; снег лежал.'],
+ ['Снег ещё лежал в лесу, но уже таял.',PS,'простое с однородными членами','Одна основа: снег лежал, таял.']
+]);
+wide('#ex-sl1');
+const SC=['',','];
+markText($('#ex-sl2'),'Предложение 1','Солнце светило[,] и снег таял.',SC,'Солнце светило, и снег таял. Две основы.');
+markText($('#ex-sl2'),'Предложение 2','Солнце светило и грело.',SC,'Запятая не нужна: одна основа, однородные сказуемые с «и».');
+markText($('#ex-sl2'),'Предложение 3','Дети катались на санках[,] а взрослые чистили дорожки.',SC,'Дети катались на санках, а взрослые чистили дорожки.');
+markText($('#ex-sl2'),'Предложение 4','Ребята пели[,] плясали и смеялись.',SC,'Ребята пели, плясали и смеялись. Однородные сказуемые.');
+markText($('#ex-sl2'),'Предложение 5','Наступила весна[,] но снег ещё лежал.',SC,'Наступила весна, но снег ещё лежал.');
+markText($('#ex-sl2'),'Предложение 6','Мама и бабушка пекли пироги.',SC,'Запятая не нужна: однородные подлежащие с «и».');
+
 /* 5. Блиц */
 (function(){
   
@@ -1275,13 +1312,13 @@ wide('#ex-o1');wide('#ex-o2');
 
 /* Отчёт для мамы */
 (function(){
-  const SECS=[['#dictw,#vis','словарные слова и зрительный диктант'],['#mine,#tnet','проверка корня, непроизносимые согласные (есть т или нет)'],['#roots','орфограммы в корне'],['#odn,#odn2','однородные члены предложения'],['#comma,#odn3','запятые при однородных членах']];
+  const SECS=[['#dictw,#vis','словарные слова и зрительный диктант'],['#mine,#tnet','проверка корня, непроизносимые согласные (есть т или нет)'],['#roots','орфограммы в корне'],['#odn,#odn2','однородные члены предложения'],['#comma,#odn3','запятые при однородных членах'],['#slozh,#slozh2','простое и сложное предложение']];
   function build(){
     const name=stuName()||'Никита';const good=[],weak=[],skip=[];
     SECS.forEach(([sel,t])=>{const it=reg.filter(i=>i.box.closest&&i.box.closest(sel));const d=it.filter(i=>i.done),ok=d.filter(i=>i.ok).length;
       if(!d.length){skip.push(t);return;}const p=Math.round(ok/d.length*100);(p>=85?good:weak).push(t+' ('+ok+' из '+d.length+')');});
     const st=lessonStats();const pct=st.solved?Math.round(st.correct/st.solved*100):0;
-    const L=[name+', урок 30 октября.','','Что делали: словарный диктант, непроизносимые согласные (есть т или нет), орфограммы в корне, зрительный диктант, новая тема: однородные члены предложения и запятые.','Результат урока: верно '+st.correct+' из '+st.solved+' заданий ('+pct+'%).'];
+    const L=[name+', урок 30 октября.','','Что делали: словарный диктант, непроизносимые согласные (есть т или нет), орфограммы в корне, зрительный диктант, новая тема: однородные члены предложения и запятые, простое и сложное предложение.','Результат урока: верно '+st.correct+' из '+st.solved+' заданий ('+pct+'%).'];
     if(good.length)L.push('Хорошо получается: '+good.join('; ')+'.');
     if(weak.length)L.push('Продолжаем работать: '+weak.join('; ')+'.');
     if(skip.length)L.push('Не успели и перенесём на следующий урок: '+skip.join('; ')+'.');
