@@ -69,7 +69,7 @@
 
   /* ---------- синхронизация ---------- */
   /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
-  const SKIP = '#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  const SKIP = '.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -128,8 +128,35 @@
   document.addEventListener('DOMContentLoaded', () => { if (T) return;
     document.querySelectorAll('.nb').forEach(nb => { const lab = (nb.querySelector('.nb-l') || {}).textContent || '';
       if (/диктант/i.test(lab) || /Учитель диктует/.test(nb.textContent)) nb.querySelectorAll('.nb-s').forEach(x => x.classList.add('dict-veil')); }); });
+  /* Фото домашней работы: ученик прикрепляет, учитель видит сразу */
+  addEventListener('load', () => {
+    const hw = document.getElementById('hw'); if (!hw || hw.querySelector('.hwph')) return;
+    const box = document.createElement('div'); box.className = 'hwph';
+    box.innerHTML = '<div class="hwph-h"><b>Фото домашней работы</b><span>' + (T ? 'Здесь появятся фото, которые пришлёт ученик.' : 'Сделай фото тетради и прикрепи сюда. Учитель увидит его сразу.') + '</span></div>' +
+      (T ? '' : '<div class="hwph-row"><button type="button" class="hwph-add">📷 Прикрепить фото</button><input type="file" accept="image/*" multiple hidden><span class="hwph-msg"></span></div>') + '<div class="hwph-list"></div>';
+    hw.appendChild(box);
+    const list = box.querySelector('.hwph-list'), msg = t => { const m = box.querySelector('.hwph-msg'); if (m) m.textContent = t; };
+    const ref = base.collection('hwphotos');
+    if (!T) { const inp = box.querySelector('input'); box.querySelector('.hwph-add').onclick = () => inp.click();
+      inp.onchange = async () => { const fs = [...inp.files]; inp.value = ''; let ok = 0;
+        for (const f of fs) { msg('Загружаю ' + (ok + 1) + ' из ' + fs.length + '…');
+          try { const d = await shrink(f); await ref.add(clean({ d, at: Date.now(), name: f.name || '' })); ok++; }
+          catch (e) { msg(e && e.code === 'unsupported_type' ? 'Этот формат не открывается. Сделай скриншот фото и прикрепи его.' : 'Не получилось загрузить: ' + ((e && e.message) || e)); return; } }
+        msg(ok ? 'Готово! Фото отправлено: ' + ok + '.' : ''); }; }
+    const zoom = d => { const o = document.createElement('div'); o.className = 'hwph-zoom'; o.innerHTML = '<img alt="Фото домашней работы">'; o.firstChild.src = d; o.onclick = () => o.remove(); document.body.appendChild(o); };
+    ref.onSnapshot(q => { list.innerHTML = '';
+      q.docs.map(x => ({ id: x.id, v: x.data() })).sort((a, b) => (a.v.at || 0) - (b.v.at || 0)).forEach(({ id, v }) => {
+        const c = document.createElement('figure'); c.className = 'hwph-card';
+        const im = document.createElement('img'); im.src = v.d; im.alt = 'Фото домашней работы'; im.onclick = () => zoom(v.d);
+        const cap = document.createElement('figcaption'); cap.textContent = v.at ? new Date(v.at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
+        c.append(im, cap);
+        if (T) { const del = document.createElement('button'); del.type = 'button'; del.textContent = 'Удалить'; del.onclick = () => { if (confirm('Удалить это фото?')) ref.doc(id).delete(); }; c.appendChild(del); }
+        list.appendChild(c); });
+      if (!q.docs.length && T) list.innerHTML = '<span class="hwph-empty">Пока фото нет.</span>'; }, () => {});
+  });
   const css = document.createElement('style');
-  css.textContent = `.st-mode .dict-veil{font-size:0!important;user-select:none}.st-mode .dict-veil *{font-size:0!important}.st-mode .dict-veil br{display:none}.st-mode .dict-veil::before{content:'Текст диктует учитель. Он откроется после проверки.';font-size:.95rem;font-style:italic;font-weight:400;color:var(--muted,#777)}
+  css.textContent = `.hwph{margin-top:16px;display:grid;gap:10px;padding:16px;border:2px dashed var(--accent,#2e8b57);border-radius:16px;background:var(--surface,#fff)}.hwph-h{display:grid;gap:2px}.hwph-h span,.hwph-msg,.hwph-empty{color:var(--muted,#666);font-size:.92rem}.hwph-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.hwph-add{font:inherit;font-weight:600;border:none;border-radius:12px;padding:12px 18px;background:var(--accent,#2e8b57);color:#fff;cursor:pointer}.hwph-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.hwph-card{margin:0;display:grid;gap:4px}.hwph-card img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--line,#ddd);cursor:zoom-in}.hwph-card figcaption{font-size:.8rem;color:var(--muted,#666)}.hwph-card button{font:inherit;font-size:.8rem;border:1px solid var(--line,#ddd);background:transparent;border-radius:8px;padding:3px 8px;cursor:pointer}.hwph-zoom{position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.85);display:grid;place-items:center;cursor:zoom-out}.hwph-zoom img{max-width:96vw;max-height:94vh}
+.st-mode .dict-veil{font-size:0!important;user-select:none}.st-mode .dict-veil *{font-size:0!important}.st-mode .dict-veil br{display:none}.st-mode .dict-veil::before{content:'Текст диктует учитель. Он откроется после проверки.';font-size:.95rem;font-style:italic;font-weight:400;color:var(--muted,#777)}
 .st-mode .tk-hidden{display:none!important}.st-mode nav.chips a.tk-off{display:none}
 .st-mode .tk-x,.st-mode .rv-tab,.st-mode .rv-panel,.st-mode .ui-add,.st-mode .ui-del,.st-mode #dictShow,.st-mode #dictDone,.st-mode .dlist input,.st-mode .dlist .dmark,.st-mode .wck .inline,.st-mode .nbq .opts,.st-mode .tchk,.st-mode .ui-card .opts,.st-mode .ui-card textarea,.st-mode #finBtn,.st-mode #redo,.st-mode #saveMsg,.st-mode .hw-head p,.st-mode #hwSave,.st-mode #hwCopy,.st-mode .hwd{display:none!important}`;
   document.head.appendChild(css);
