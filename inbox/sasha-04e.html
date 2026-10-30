@@ -600,7 +600,7 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 
 <nav class="chips" aria-label="Разделы">
   <div class="row">
-    <a href="#dictw" class="c-nb"><span>1</span>Ошибки</a>
+    <a href="#dictw" class="c-nb"><span>1</span>Диктант и ошибки</a>
     <a href="#warm" class="c-sc"><span>2</span>Разминка</a>
     <a href="#prich2" class="c-nb"><span>3</span>Оборот: правило</a>
     <a href="#prich" class="c-sc"><span>4</span>Оборот: запятые</a>
@@ -660,7 +660,12 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 </div>
 
 <section class="part sec-nb" id="dictw">
-  <div class="part-head"><span class="num">ШАГ 1 · ОШИБКИ ПРОШЛОГО УРОКА</span><span class="mode m-nb">✎ В ТЕТРАДИ</span><h2>Работа над ошибками</h2></div>
+  <div class="part-head"><span class="num">ШАГ 1 · НАЧАЛО УРОКА</span><span class="mode m-nb">✎ В ТЕТРАДИ</span><h2>Словарный диктант и ошибки прошлого урока</h2></div>
+  <p class="ex-task">Словарный диктант по группе 5. Пиши в тетрадь под диктовку, потом сверим.</p>
+  <div class="inline"><button class="btn ghost" type="button" id="dictShow" aria-pressed="false">Показать слова</button><span class="fb" id="dictHint">Слова скрыты, пока идёт диктант.</span></div>
+  <div class="dlist dict-hidden" id="ex-dict"></div>
+  <div class="inline"><button class="btn" type="button" id="dictDone">Диктант проверен</button><span class="fb" id="dictRes"></span></div>
+  <div class="nb"><span class="label nb-l">В тетрадь · словарные слова</span><ol><li>Каждое слово, в котором ошиблась на диктанте, запиши 3 раза и подчеркни трудное место.</li></ol><div class="nbmark" data-name="В тетрадь: словарные слова"></div></div>
   <div class="nb"><span class="label nb-l">В тетрадь · слова с ошибками</span><ol><li>В этих словах ты ошибалась 23 октября. Запиши каждое 3 раза и подчеркни трудное место.<br><span class="nb-w">пощадить, суббота, терраса, жужжать, коллектив</span></li><li>Составь одно предложение со словами <b>суббота</b> и <b>терраса</b>.</li></ol><div class="nbmark" data-name="В тетрадь: слова с ошибками"></div></div>
 </section>
 
@@ -735,7 +740,7 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
   <div class="hw-head"><h2>Домашнее задание</h2><p>Сохрани или скопируй картинку и отправь ученику.</p></div>
   <div class="hwc" id="hwCard">
     <div class="hwc-top"><span class="hwc-k">Домашнее задание</span><b class="hwc-t">Саша · 30 октября</b><span class="hwc-s">Всё делаем письменно в тетради</span></div>
-    <div class="hwc-b"><span class="hwc-n">1</span><div class="hwc-c"><h3>Словарные слова</h3><p>Выучи слова. Запиши каждое 2 раза и подчеркни трудное место. На следующем уроке будет словарный диктант.</p><div class="hwc-w"><span>адрес</span><span>алфавит</span><span>город</span><span>дежурный</span><span>карандаш</span><span>карман</span><span>картина</span><span>картон</span><span>картофель</span><span>карточка</span><span>квадрат</span><span>квартира</span><span>компот</span><span>коньки</span><span>косынка</span></div></div></div>
+    <div class="hwc-b"><span class="hwc-n">1</span><div class="hwc-c"><h3>Словарные слова</h3><p>Группа 6, слова 1–15. Выучи слова. Запиши каждое 2 раза и подчеркни трудное место. На следующем уроке будет словарный диктант.</p><div class="hwc-w"><span>желать</span><span>железо</span><span>велосипед</span><span>инженер</span><span>аппетит</span><span>аппарат</span><span>аккуратный</span><span>здесь</span><span>автомобиль</span><span>свобода</span><span>экскаватор</span><span>эскалатор</span><span>галерея</span><span>огонь</span><span>костёр</span></div><p id="hwRepLine">Повтори слова с ошибками: <b id="hwRep"></b>.</p></div></div>
     <div class="hwc-b"><span class="hwc-n">2</span><div class="hwc-c"><h3>Суффиксы причастий</h3><p>Запиши причастия, вставляя пропущенные буквы. Рядом напиши глагол и его спряжение (или гласную перед -ть).</p><div class="hwc-w"><span>колыш..щийся</span><span>бор..щийся</span><span>стро..щий</span><span>слыш..щий</span><span>завис..щий</span><span>кле..щий</span><span>пиш..щий</span><span>та..щий</span><span>чита..мый</span><span>вид..мый</span><span>гон..мый</span><span>хран..мый</span><span>увид..вший</span><span>се..вший</span><span>кле..вший</span><span>прочит..нный</span><span>постро..нный</span><span>посе..нный</span><span>развеш..нное (бельё)</span><span>принес..нный</span></div></div></div>
     <div class="hwc-b"><span class="hwc-n">3</span><div class="hwc-c"><h3>Причастный оборот</h3><p>Составь 4 предложения с причастным оборотом: два с оборотом после определяемого слова и два перед ним. Используй причастия разных видов. Расставь запятые.</p></div></div>
     <div class="hwc-f"><span>На следующем уроке: словарный диктант</span><span>t.me/OGE_ShkatovaE</span></div>
@@ -901,7 +906,30 @@ function badgeCheck(){
   const fbx=$('#finBadges');if(fbx)fbx.textContent=BADGES.filter(b=>window.badgesEarned.includes(b.id)).map(b=>b.ic).join(' ');
 }
 
+/* 0. Словарный диктант: учитель диктует и отмечает ошибки */
+const WORDS2=['обед', 'винегрет', 'расстояние', 'рисунок', 'молоток', 'экскурсия', 'кровать', 'запад', 'восток', 'горячий', 'трактор', 'победа', 'космос', 'космонавт', 'чувство', 'орех', 'комбайн', 'песок', 'завтрак', 'рассказ', 'аптека', 'библиотека', 'однажды', 'герой', 'земляника', 'отец', 'металл', 'коллекция', 'искусный', 'профессия'];
 const HW_REP_DEFAULT=[];
+(function(){
+  const host=$('#ex-dict'),items=[];
+  const OLD=[];
+  WORDS2.concat(OLD).forEach((w,i)=>{
+    const box=el('label','q');const item={box,done:false,ok:false};reg.push(item);items.push(item);
+    const n=el('span','dnum',String(i+1));const wd=el('span','drill-word',w+(i>=WORDS2.length?' <span class="drill-ctx">(повтор)</span>':''));
+    const cb=el('input');cb.type='checkbox';cb.id='dw'+i;cb.setAttribute('aria-label','Ошибка в слове '+w);
+    const mk=el('span','dmark','ошибка');const fb=el('div','fb','');
+    box.append(n,wd,cb,mk,fb);host.appendChild(box);
+    cb.addEventListener('change',()=>{box.classList.toggle('is-bad',cb.checked);if(item.done){item.ok=!cb.checked;fb.textContent=cb.checked?'Ответ: '+w+'.':'';update();setRep();}});
+    item.cb=cb;item.fb=fb;item.w=w;
+    item.reset=()=>{cb.checked=false;box.classList.remove('is-bad','is-ok');item.done=item.ok=false;fb.textContent='';};
+  });
+  function setRep(){const bad=items.filter(it=>it.done&&!it.ok).map(it=>it.w);if(window.setHwRep)window.setHwRep(bad);}
+  const show=$('#dictShow');
+  show.addEventListener('click',()=>{const h=host.classList.toggle('dict-hidden');show.setAttribute('aria-pressed',h?'false':'true');
+    show.textContent=h?'Показать слова':'Скрыть слова';$('#dictHint').textContent=h?'Слова скрыты, пока идёт диктант.':'Отметь галочкой слова с ошибкой.';});
+  $('#dictDone').addEventListener('click',()=>{let bad=[];
+    items.forEach(it=>{it.done=true;it.ok=!it.cb.checked;it.fb.textContent=it.cb.checked?'Ответ: '+it.w+'.':'';if(!it.ok)bad.push(it.w);});
+    $('#dictRes').innerHTML=bad.length?'<b>Ошибок: '+bad.length+'.</b> Эти слова попадут в домашку: '+bad.join(', ')+'.':'<b>Без ошибок!</b>';update();setRep();});
+})();
 
 /* Проверка тетради по словам: ответы размыты, учитель отмечает ошибки */
 let wckN=0;
@@ -1115,8 +1143,8 @@ wide('#ex-s4');
 /* Текст домашки и строка «Повтори» */
 (function(){
   let rep=HW_REP_DEFAULT.slice();
-  function text(){return ['Домашнее задание. Всё пишем в тетради.','','1. Словарные слова (группа 1, слова 1–15). Выучи слова. Запиши каждое 2 раза и подчеркни трудное место. На следующем уроке будет словарный диктант.','адрес, алфавит, город, дежурный, карандаш, карман, картина, картон, картофель, карточка, квадрат, квартира, компот, коньки, косынка.','','2. Суффиксы причастий. Запиши причастия, вставляя пропущенные буквы. Рядом напиши глагол и его спряжение (или гласную перед -ть).','колыш..щийся, бор..щийся, стро..щий, слыш..щий, завис..щий, кле..щий, пиш..щий, та..щий, чита..мый, вид..мый, гон..мый, хран..мый, увид..вший, се..вший, кле..вший, прочит..нный, постро..нный, посе..нный, развеш..нное (бельё), принес..нный.','','3. Причастный оборот. Составь 4 предложения с причастным оборотом: два с оборотом после определяемого слова и два перед ним. Используй причастия разных видов. Расставь запятые.'].filter((l,i,a)=>!(l===''&&a[i-1]==='')).join('\n');}
-  function render(){$('#hwText').textContent=text();}
+  function text(){return ['Домашнее задание. Всё пишем в тетради.','','1. Словарные слова (группа 6, слова 1–15). Выучи слова. Запиши каждое 2 раза и подчеркни трудное место. На следующем уроке будет словарный диктант.','желать, железо, велосипед, инженер, аппетит, аппарат, аккуратный, здесь, автомобиль, свобода, экскаватор, эскалатор, галерея, огонь, костёр.',rep.length?'Повтори слова с ошибками: '+rep.join(', ')+'.':'','','2. Суффиксы причастий. Запиши причастия, вставляя пропущенные буквы. Рядом напиши глагол и его спряжение (или гласную перед -ть).','колыш..щийся, бор..щийся, стро..щий, слыш..щий, завис..щий, кле..щий, пиш..щий, та..щий, чита..мый, вид..мый, гон..мый, хран..мый, увид..вший, се..вший, кле..вший, прочит..нный, постро..нный, посе..нный, развеш..нное (бельё), принес..нный.','','3. Причастный оборот. Составь 4 предложения с причастным оборотом: два с оборотом после определяемого слова и два перед ним. Используй причастия разных видов. Расставь запятые.'].filter((l,i,a)=>!(l===''&&a[i-1]==='')).join('\n');}
+  function render(){$('#hwText').textContent=text();const line=$('#hwRepLine');line.hidden=!rep.length;$('#hwRep').textContent=rep.join(', ');}
   window.setHwRep=bad=>{rep=bad.slice();render();if(window.hwReset)window.hwReset();};
   render();
 })();
