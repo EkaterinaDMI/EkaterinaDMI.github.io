@@ -134,7 +134,18 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     sheets=b.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),sid:d.get('sid')||null,src:d.get('src')||null,createdAt:d.get('createdAt')}));
     try{const r=await fetch('inbox/list.json?'+Date.now(),{cache:'no-store'});inbox=r.ok?(await r.json()):[];}catch(e){inbox=[];}
     try{const r=await fetch('inbox/students.json?'+Date.now(),{cache:'no-store'});roster=r.ok?(await r.json()):[];}catch(e){roster=[];}
+    hwdone={};await Promise.all(students.filter(s=>s.current).map(async s=>{try{const d=await fdb.collection('sheets').doc(s.current).collection('presence').doc('hw').get();if(d.exists&&d.get('done'))hwdone[s.id]=d.data();}catch(e){}}));
+    watchHw();
     open?showStudent(open):showList();
+  }
+  let hwdone={},hwWatch=[];
+  const hwWhen=t=>new Date(t).toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  function watchHw(){hwWatch.forEach(u=>u());hwWatch=[];
+    students.filter(s=>s.current).forEach(s=>{let first=true;hwWatch.push(fdb.collection('sheets').doc(s.current).collection('presence').doc('hw').onSnapshot(d=>{
+      const v=d.exists?d.data():null;const was=hwdone[s.id];
+      if(v&&v.done){hwdone[s.id]=v;if(!first&&(!was||was.at!==v.at)){toast(s.name+' сдал(а) домашнее задание');try{if(window.Notification&&Notification.permission==='granted')new Notification('ДЗ выполнено',{body:s.name+' отметил(а) домашнее задание'});}catch(e){}if(!open)showList();}}
+      first=false;},()=>{}));});
+    try{if(window.Notification&&Notification.permission==='default')Notification.requestPermission();}catch(e){}
   }
   const sheetsOf=sid=>sheets.filter(s=>s.sid===sid);
   /* новые листы, которые Claude выложил в папку inbox */
@@ -182,6 +193,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
       c.innerHTML='<span class="av">'+esc(s.avatar||'🙂')+'</span><span class="nm">'+esc(s.name)+'</span><span class="meta">'+esc(s.grade||'')+(s.grade?' · ':'')+'ур. '+lv.n+' · '+(st.points||0)+' очк.</span>'+
         '<span class="now'+(cur?'':' no')+'">'+(cur?'Сегодня: '+esc(short(cur.title)):'Урок не выбран')+'</span>';
       const np=pendingFor(s).length;if(np)c.insertAdjacentHTML('beforeend','<span class="now" style="background:#FFF4CC">Новый лист от Claude</span>');
+      const hd=hwdone[s.id];if(hd)c.insertAdjacentHTML('beforeend','<span class="now" style="background:#DFF5E3">ДЗ сдано · '+esc(hwWhen(hd.at))+'</span>');
       c.onclick=()=>showStudent(s.id);g.appendChild(c);});
     P.forEach(it=>{const r=document.createElement('div');r.className='row';
       const match=students.find(x=>norm(x.name)===norm(it.student));
