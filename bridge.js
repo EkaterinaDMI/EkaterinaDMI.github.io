@@ -124,6 +124,21 @@
     scrollTo: p => { const el = byPath(p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   };
 
+  /* В окне «Урок закончен»: вместо отчёта для мамы — отчёт для Claude (учитель) */
+  addEventListener('load', () => { const btn = document.getElementById('finRep'); if (!btn) return;
+    if (!T) { btn.style.display = 'none'; return; }
+    btn.textContent = 'Отчёт для Claude';
+    btn.addEventListener('click', async e => { e.preventDefault(); e.stopImmediatePropagation();
+      const ta = document.getElementById('repText'), msg = document.getElementById('repMsg');
+      if (msg) msg.textContent = 'Собираю отчёт…';
+      const lab = t => { if (t.matches('section.part')) { const h = t.querySelector('h2'); return 'раздел «' + (h ? h.textContent.trim() : '') + '»'; } const g = t.querySelector('.ex-head .tag,.nb-l'); return g ? g.textContent.trim() : 'задание'; };
+      const toHw = [...document.querySelectorAll('.to-hw')].filter(t => !t.parentElement.closest('.to-hw')).map(lab);
+      const unsolved = [...document.querySelectorAll('section.part:not(#hw):not(#errpanel)')].filter(sc => !sc.classList.contains('tk-hidden') && !sc.classList.contains('to-hw') && sc.querySelector('.q') && !sc.querySelector('.q.is-ok,.q.is-bad')).map(sc => { const h = sc.querySelector('h2'); return h ? h.textContent.trim() : sc.id; });
+      try { await new Promise(r => setTimeout(r, 1800)); const t = await API.claudeReport({ toHw, unsolved });
+        if (ta) { ta.value = t; ta.hidden = false; ta.focus(); ta.select(); }
+        try { await navigator.clipboard.writeText(t); if (msg) msg.textContent = 'Отчёт скопирован. Вставь его в чат с Claude.'; }
+        catch (_) { if (msg) msg.textContent = 'Текст выделен: нажми «Копировать» и вставь его в чат с Claude.'; } }
+      catch (err) { if (msg) msg.textContent = 'Не получилось собрать отчёт: ' + ((err && err.message) || err); } }, true); });
   /* Кнопка «В ДЗ» у каждого задания и раздела (добавляется у обоих, чтобы пути совпадали) */
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.tk-x').forEach(x => { const host = x.parentElement; if (!host || host.closest('#hw') || host.querySelector(':scope > .hw-x')) return;

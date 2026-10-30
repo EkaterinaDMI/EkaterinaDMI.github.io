@@ -266,6 +266,24 @@ h2{font-size:1.35rem}
       badgeCounts:stu&&stu.stats?stu.stats.badges:null,
       emit:ev=>{base.collection('events').add(Object.assign(JSON.parse(JSON.stringify(ev)),{from:CID,n:++n,at:FV.serverTimestamp()})).catch(()=>setConn(false));},
       onFinish:T&&sheet.sid?finish:null,
+      claudeReport:async extra=>{
+        const [att,rev,imgs,ph,dn]=await Promise.all([base.collection('attempts').get(),base.collection('review').doc('next').get(),base.collection('teacherimgs').get(),base.collection('hwphotos').get().catch(()=>({docs:[]})),base.collection('presence').doc('hw').get().catch(()=>null)]);
+        const L=['Отчёт для Claude. Ученик: '+(sheet.student||'')+'. Лист: '+(sheet.title||'')+' (id '+sheetId+')'];
+        const A=att.docs.map(d=>d.data()).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+        if(!A.length)L.push('Результатов пока нет.');
+        A.slice(0,1).forEach(a=>{const l=a.lesson||{solved:a.solved,total:a.total,correct:a.correct};
+          L.push('','Урок '+(a.updatedAt||'').slice(0,16).replace('T',' ')+(a.finished?' · закончен':'')+': решено '+l.solved+' из '+l.total+', верно '+l.correct+'.');
+          if(a.hidden&&a.hidden.length)L.push('Скрыто крестиком: '+a.hidden.join('; '));
+          (a.errors||[]).forEach((e,i)=>L.push((i+1)+') ['+e.section+'] '+e.q+' — ответ: '+e.given+'; верно: '+e.right));
+          if(a.blitz)L.push('Блиц: '+a.blitz.score+' очков, ответов '+a.blitz.answers+', точность '+a.blitz.acc+'%'+(a.blitz.mistakes&&a.blitz.mistakes.length?', ошибки: '+a.blitz.mistakes.join(', '):''));});
+        if(extra&&extra.toHw&&extra.toHw.length)L.push('','Отправлено в ДЗ: '+extra.toHw.join('; '));
+        if(extra&&extra.unsolved&&extra.unsolved.length)L.push('Не дошли (разделы без ответов): '+extra.unsolved.join('; '));
+        const r=rev.exists?rev.data():null;if(r&&((r.topics||[]).length||r.note))L.push('','Повторить на следующем уроке: '+(r.topics||[]).join('; ')+(r.note?' · заметка: '+r.note:''));
+        const I=imgs.docs.map(d=>d.data());if(I.length){L.push('','Свои задания картинкой:');I.forEach((d,i)=>L.push((i+1)+') ['+(d.sectionName||d.section)+'] '+(d.caption||'без подписи')+' · '+(d.check===true?'верно':d.check===false?'есть ошибки':'не проверено')+(d.note?' · ошибки: '+d.note:'')));}
+        if(ph.docs&&ph.docs.length)L.push('','Фото ДЗ прислано: '+ph.docs.length+' шт.');
+        if(dn&&dn.exists&&dn.data().done)L.push('Ученик отметил, что ДЗ выполнено.');
+        return L.join('\n');
+      },
       ready:()=>{ready=true;const w=frame.contentWindow;initial.forEach(ev=>w.__sync.apply(ev,true));pend.forEach(ev=>w.__sync.apply(ev,false));pend=[];
         $('#msg').hidden=true;frame.hidden=false;fit();startPresence();}
     };
