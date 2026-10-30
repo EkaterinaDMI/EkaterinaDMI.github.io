@@ -272,7 +272,7 @@ h2{font-size:1.35rem}
     async function finish(d,badges){
       const l=d.lesson||{solved:d.solved||0,correct:d.correct||0};const pct=l.solved?Math.round(l.correct/l.solved*100):0;
       const rec={title:sheet.title||'Урок',date:new Date().toISOString(),solved:l.solved||0,correct:l.correct||0,total:l.total||0,pct,badges:badges||[],perfect:!!(l.solved&&l.correct===l.solved&&l.solved>=10),hidden:d.hidden||[]};
-      try{await fdb.collection('students').doc(sheet.sid).collection('lessons').doc(sheetId).set(rec);await K.recompute(fdb,sheet.sid);}catch(e){console.warn(e);}
+      try{await fdb.collection('students').doc(sheet.sid).collection('lessons').doc(sheetId).set(JSON.parse(JSON.stringify(rec)));await K.recompute(fdb,sheet.sid);}catch(e){console.warn(e);alert('Итоги урока не сохранились: '+(e.message||e)+'. Сделай скриншот и пришли Claude.');}
     }
     await firstSnap;
     /* верхняя полоска */
