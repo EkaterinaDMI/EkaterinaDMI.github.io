@@ -25,7 +25,7 @@
   function docRef(r, cname){ return {
     id: r.id,
     get: () => r.get().then(snap),
-    set: d => { if (T && cname === 'attempts' && d && d.finished && API.onFinish) { try { API.onFinish(clean(d), earnedBadges()); } catch (e) {} } return write(() => r.set(clean(d))); },
+    set: d => { if (T && cname === 'attempts' && d && d.finished) { if (API.onFinish) { try { API.onFinish(clean(d), earnedBadges()); } catch (e) {} } base.collection('presence').doc('lesson').set(clean({ finished: true, at: Date.now(), hidden: window.hiddenTasks || [] })).catch(() => {}); } return write(() => r.set(clean(d))); },
     update: d => write(() => r.update(clean(d))),
     delete: () => write(() => r.delete()),
     onSnapshot: (cb, err) => { r.get().then(s => cb(snap(s)), err || (() => {})); return () => {}; }
@@ -69,7 +69,7 @@
 
   /* ---------- синхронизация ---------- */
   /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
-  const SKIP = '.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  const SKIP = '.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -128,6 +128,29 @@
   document.addEventListener('DOMContentLoaded', () => { if (T) return;
     document.querySelectorAll('.nb').forEach(nb => { const lab = (nb.querySelector('.nb-l') || {}).textContent || '';
       if (/диктант/i.test(lab) || /Учитель диктует/.test(nb.textContent)) nb.querySelectorAll('.nb-s').forEach(x => x.classList.add('dict-veil')); }); });
+  /* Скрытые на уроке задания уходят в домашку после «Урок закончен» */
+  addEventListener('load', () => {
+    const hw = document.getElementById('hw'); if (!hw || hw.querySelector('.hwleft')) return;
+    const box = document.createElement('div'); box.className = 'hwleft'; box.hidden = true;
+    box.innerHTML = '<b>' + (T ? 'Скрытые задания уйдут в домашку' : 'Доделай на экране') + '</b><span class="hwleft-sub">' + (T ? 'После «Урок закончен» они откроются у ученика с пометкой «Домашнее задание».' : 'Эти задания не успели на уроке. Нажми на название, чтобы перейти к заданию.') + '</span><div class="hwleft-list"></div>';
+    hw.insertBefore(box, hw.querySelector('.hwph') || null);
+    const list = box.querySelector('.hwleft-list');
+    let finished = false;
+    const label = t => { if (t.matches('section.part')) { const h = t.querySelector('h2'); return 'Раздел: ' + (h ? h.textContent.trim() : ''); } const g = t.querySelector('.ex-head .tag,.nb-l'); return g ? g.textContent.trim() : 'Задание'; };
+    function paint(){
+      const items = [...document.querySelectorAll(finished && !T ? '.hw-task' : '.tk-hidden')].filter(t => !t.closest('#hw'));
+      const top = items.filter(t => !items.some(o => o !== t && o.contains(t)));
+      list.innerHTML = ''; top.forEach(t => { const b = document.createElement('button'); b.type = 'button'; b.className = 'hwleft-it'; b.textContent = label(t); b.onclick = () => t.scrollIntoView({ behavior: 'smooth', block: 'start' }); list.appendChild(b); });
+      box.hidden = !top.length;
+    }
+    function toHw(){ if (T || !finished) return;
+      document.documentElement.classList.add('hw-mode');
+      document.querySelectorAll('.tk-hidden').forEach(t => { t.classList.remove('tk-hidden'); t.classList.add('hw-task'); });
+      document.querySelectorAll('nav.chips a.tk-off').forEach(a => a.classList.remove('tk-off')); paint(); }
+    base.collection('presence').doc('lesson').onSnapshot(d => { finished = !!(d.exists && d.data().finished); toHw(); [1500, 4000].forEach(ms => setTimeout(toHw, ms)); paint(); }, () => {});
+    document.addEventListener('click', () => setTimeout(paint, 300));
+    setTimeout(paint, 1500);
+  });
   /* Фото домашней работы: ученик прикрепляет, учитель видит сразу */
   addEventListener('load', () => {
     const hw = document.getElementById('hw'); if (!hw || hw.querySelector('.hwph')) return;
@@ -165,7 +188,7 @@
       if (!q.docs.length && T) list.innerHTML = '<span class="hwph-empty">Пока фото нет.</span>'; }, () => {});
   });
   const css = document.createElement('style');
-  css.textContent = `.hwph{margin-top:16px;display:grid;gap:10px;padding:16px;border:2px dashed var(--accent,#2e8b57);border-radius:16px;background:var(--surface,#fff)}.hwph-h{display:grid;gap:2px}.hwph-h span,.hwph-msg,.hwph-empty{color:var(--muted,#666);font-size:.92rem}.hwph-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.hwph-add{font:inherit;font-weight:600;border:none;border-radius:12px;padding:12px 18px;background:var(--accent,#2e8b57);color:#fff;cursor:pointer}.hwph-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.hwph-card{margin:0;display:grid;gap:4px}.hwph-card img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--line,#ddd);cursor:zoom-in}.hwph-card figcaption{font-size:.8rem;color:var(--muted,#666)}.hwph-card button{font:inherit;font-size:.8rem;border:1px solid var(--line,#ddd);background:transparent;border-radius:8px;padding:3px 8px;cursor:pointer}.hwdone{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:6px;border-top:1px dashed var(--line,#ddd)}.hwdone-btn{font:inherit;font-weight:700;border:none;border-radius:12px;padding:12px 18px;background:#f2a900;color:#222;cursor:pointer}.hwdone-st{font-weight:600}.hwph-zoom{position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.85);display:grid;place-items:center;cursor:zoom-out}.hwph-zoom img{max-width:96vw;max-height:94vh}
+  css.textContent = `.hwph{margin-top:16px;display:grid;gap:10px;padding:16px;border:2px dashed var(--accent,#2e8b57);border-radius:16px;background:var(--surface,#fff)}.hwph-h{display:grid;gap:2px}.hwph-h span,.hwph-msg,.hwph-empty{color:var(--muted,#666);font-size:.92rem}.hwph-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.hwph-add{font:inherit;font-weight:600;border:none;border-radius:12px;padding:12px 18px;background:var(--accent,#2e8b57);color:#fff;cursor:pointer}.hwph-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.hwph-card{margin:0;display:grid;gap:4px}.hwph-card img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--line,#ddd);cursor:zoom-in}.hwph-card figcaption{font-size:.8rem;color:var(--muted,#666)}.hwph-card button{font:inherit;font-size:.8rem;border:1px solid var(--line,#ddd);background:transparent;border-radius:8px;padding:3px 8px;cursor:pointer}.hwleft{margin-top:16px;display:grid;gap:8px;padding:16px;border:2px solid #f2a900;border-radius:16px;background:#fff8e1}.hwleft[hidden]{display:none!important}.hwleft-sub{color:var(--muted,#666);font-size:.92rem}.hwleft-list{display:flex;flex-wrap:wrap;gap:8px}.hwleft-it{font:inherit;font-size:.9rem;border:1.5px solid #f2a900;background:#fff;border-radius:10px;padding:6px 12px;cursor:pointer}.hw-task{outline:3px solid #f2a900;outline-offset:6px;border-radius:12px}.hw-task::before{content:'Домашнее задание';display:inline-block;justify-self:start;font:700 .72rem/1 sans-serif;letter-spacing:.05em;text-transform:uppercase;background:#f2a900;color:#222;padding:5px 9px;border-radius:999px;margin-bottom:6px}.hwdone{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:6px;border-top:1px dashed var(--line,#ddd)}.hwdone-btn{font:inherit;font-weight:700;border:none;border-radius:12px;padding:12px 18px;background:#f2a900;color:#222;cursor:pointer}.hwdone-st{font-weight:600}.hwph-zoom{position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.85);display:grid;place-items:center;cursor:zoom-out}.hwph-zoom img{max-width:96vw;max-height:94vh}
 .st-mode .dict-veil{font-size:0!important;user-select:none}.st-mode .dict-veil *{font-size:0!important}.st-mode .dict-veil br{display:none}.st-mode .dict-veil::before{content:'Текст диктует учитель. Он откроется после проверки.';font-size:.95rem;font-style:italic;font-weight:400;color:var(--muted,#777)}
 .st-mode .tk-hidden{display:none!important}.st-mode nav.chips a.tk-off{display:none}
 .st-mode .tk-x,.st-mode .rv-tab,.st-mode .rv-panel,.st-mode .ui-add,.st-mode .ui-del,.st-mode #dictShow,.st-mode #dictDone,.st-mode .dlist input,.st-mode .dlist .dmark,.st-mode .wck .inline,.st-mode .nbq .opts,.st-mode .tchk,.st-mode .ui-card .opts,.st-mode .ui-card textarea,.st-mode #finBtn,.st-mode #redo,.st-mode #saveMsg,.st-mode .hw-head p,.st-mode #hwSave,.st-mode #hwCopy,.st-mode .hwd{display:none!important}`;
