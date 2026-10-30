@@ -68,7 +68,8 @@
   window.claude = { use: n => Promise.resolve(n === 'db' ? db : n === 'assets' ? assets : n === 'downloads' ? downloads : null) };
 
   /* ---------- синхронизация ---------- */
-  const SKIP = '#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
+  const SKIP = '#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -101,7 +102,10 @@
 
   function apply(ev, replay){
     try {
-      if (ev.k === 'click') { const el = byPath(ev.p); if (el) el.click(); }
+      if (ev.k === 'click') { const el = byPath(ev.p); if (el) { el.click();
+          /* после проверки ученик видит слова со своими отметками */
+          if (!T) { if (el.id === 'dictDone') { const d = document.getElementById('ex-dict'); if (d) d.classList.remove('dict-hidden'); }
+            const w = el.closest && el.closest('.wck'); if (w && el.matches('.btn:not(.ghost)')) { const l = w.querySelector('.dlist'); if (l) l.classList.remove('dict-hidden'); } } } }
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
       else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
