@@ -105,7 +105,8 @@
       if (ev.k === 'click') { const el = byPath(ev.p); if (el) { el.click();
           /* после проверки ученик видит слова со своими отметками */
           if (!T) { if (el.id === 'dictDone') { const d = document.getElementById('ex-dict'); if (d) d.classList.remove('dict-hidden'); }
-            const w = el.closest && el.closest('.wck'); if (w && el.matches('.btn:not(.ghost)')) { const l = w.querySelector('.dlist'); if (l) l.classList.remove('dict-hidden'); } } } }
+            const w = el.closest && el.closest('.wck'); if (w && el.matches('.btn:not(.ghost)')) { const l = w.querySelector('.dlist'); if (l) l.classList.remove('dict-hidden'); }
+            const nx = el.closest && el.closest('.nb'); if (nx && el.matches('.wck .btn:not(.ghost), .nbq .opt')) nx.querySelectorAll('.dict-veil').forEach(x => x.classList.remove('dict-veil')); } } }
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
       else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
@@ -123,8 +124,13 @@
     scrollTo: p => { const el = byPath(p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   };
 
+  /* тексты диктантов ученик не видит, пока учитель не проверит (класс меняем, узлы не добавляем: пути синхронизации не сдвигаются) */
+  document.addEventListener('DOMContentLoaded', () => { if (T) return;
+    document.querySelectorAll('.nb').forEach(nb => { const lab = (nb.querySelector('.nb-l') || {}).textContent || '';
+      if (/диктант/i.test(lab) || /Учитель диктует/.test(nb.textContent)) nb.querySelectorAll('.nb-s').forEach(x => x.classList.add('dict-veil')); }); });
   const css = document.createElement('style');
-  css.textContent = `.st-mode .tk-hidden{display:none!important}.st-mode nav.chips a.tk-off{display:none}
+  css.textContent = `.st-mode .dict-veil{font-size:0!important;user-select:none}.st-mode .dict-veil *{font-size:0!important}.st-mode .dict-veil br{display:none}.st-mode .dict-veil::before{content:'Текст диктует учитель. Он откроется после проверки.';font-size:.95rem;font-style:italic;font-weight:400;color:var(--muted,#777)}
+.st-mode .tk-hidden{display:none!important}.st-mode nav.chips a.tk-off{display:none}
 .st-mode .tk-x,.st-mode .rv-tab,.st-mode .rv-panel,.st-mode .ui-add,.st-mode .ui-del,.st-mode #dictShow,.st-mode #dictDone,.st-mode .dlist input,.st-mode .dlist .dmark,.st-mode .wck .inline,.st-mode .nbq .opts,.st-mode .tchk,.st-mode .ui-card .opts,.st-mode .ui-card textarea,.st-mode #finBtn,.st-mode #redo,.st-mode #saveMsg,.st-mode .hw-head p,.st-mode #hwSave,.st-mode #hwCopy,.st-mode .hwd{display:none!important}`;
   document.head.appendChild(css);
   addEventListener('load', () => setTimeout(() => API.ready(), 400));
