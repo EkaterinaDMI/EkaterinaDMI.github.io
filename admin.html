@@ -115,7 +115,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   const $=s=>document.querySelector(s);const K=window.KIT,esc=K.esc;
   $('#siteName').textContent='Мои ученики';if(window.IMG){$('#meImg').src=IMG.teacher;$('#owImg').src=IMG.owlHi;}
   firebase.initializeApp(window.FB_CONFIG);
-  const auth=firebase.auth(),fdb=firebase.firestore();
+  const auth=firebase.auth(),fdb=firebase.firestore();try{fdb.settings({experimentalAutoDetectLongPolling:true,merge:true});}catch(e){}
   const isAdmin=u=>u&&!u.isAnonymous&&(u.email||'').toLowerCase()===String(window.ADMIN_EMAIL).toLowerCase();
   const site=location.href.replace(/admin\.html.*$/,'').replace(/[?#].*$/,'');
   let tT=null;const toast=t=>{const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(tT);tT=setTimeout(()=>e.hidden=true,2400);};
@@ -126,7 +126,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   $('#logout').onclick=()=>auth.signOut();
   auth.onAuthStateChanged(u=>{
     if(!isAdmin(u)){$('#app').hidden=true;$('#login').hidden=false;$('#logout').hidden=!u;$('#who').textContent=u&&!u.isAnonymous?u.email+' (не администратор)':'';return;}
-    $('#login').hidden=true;$('#app').hidden=false;$('#logout').hidden=false;$('#who').textContent=u.email;load();
+    $('#login').hidden=true;$('#app').hidden=false;$('#logout').hidden=false;$('#who').textContent=u.email;$('#app').innerHTML='<p class="muted">Загружаю учеников…</p>';load().catch(e=>{$('#app').innerHTML='<div class="card"><h2>Не получилось загрузить учеников</h2><p class="muted">'+esc(String(e&&e.message||e))+'</p><p class="muted">Проверь интернет и нажми «Обновить». Если не помогает, пришли этот текст Claude.</p><div><button type="button" class="b main" onclick="location.reload()">Обновить</button></div></div>';});
   });
   let students=[],sheets=[],inbox=[],roster=[],open=null;
   const stuLink=s=>site+'index.html?u='+s.id, tchLink=id=>site+'index.html?s='+id+'&t=1', sheetLink=id=>site+'index.html?s='+id;
