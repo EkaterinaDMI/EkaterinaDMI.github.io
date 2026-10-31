@@ -119,7 +119,10 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   const isAdmin=u=>u&&!u.isAnonymous&&(u.email||'').toLowerCase()===String(window.ADMIN_EMAIL).toLowerCase();
   const site=location.href.replace(/admin\.html.*$/,'').replace(/[?#].*$/,'');
   let tT=null;const toast=t=>{const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(tT);tT=setTimeout(()=>e.hidden=true,2400);};
-  $('#loginBtn').onclick=async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){$('#loginMsg').textContent='Не получилось войти: '+(e.message||e);}};
+  const inApp=/Telegram|FBAN|FBAV|Instagram|VKClient|\bwv\b|WhatsApp/i.test(navigator.userAgent);
+  const hint='Похоже, сайт открыт внутри Telegram или другого приложения: там Google не даёт войти. Нажми «···» вверху справа → «Открыть в Safari» (или в Chrome) и войди там.';
+  if(inApp)$('#loginMsg').textContent=hint;
+  $('#loginBtn').onclick=async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){const c=e&&e.code||'';$('#loginMsg').textContent=/popup|web-storage|operation-not-supported/.test(c)?hint:'Не получилось войти: '+(e.message||e);}};
   $('#logout').onclick=()=>auth.signOut();
   auth.onAuthStateChanged(u=>{
     if(!isAdmin(u)){$('#app').hidden=true;$('#login').hidden=false;$('#logout').hidden=!u;$('#who').textContent=u&&!u.isAnonymous?u.email+' (не администратор)':'';return;}
