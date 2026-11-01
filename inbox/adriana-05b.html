@@ -1,4 +1,4 @@
-<title>Адриана · Урок 1 ноября · Мой или моя, ъ и ь</title>
+<title>Адриана · Урок 1 ноября · Мой или моя, ъ и ь, кас/кос</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -592,8 +592,8 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
     </svg>
   </div>
   <div class="toprow"><div class="brand" id="brand" title="6 класс"><span class="dot">6</span><span class="eyebrow">Адриана · 6 класс · 1 ноября</span></div></div>
-  <h1>Мой или моя? Ъ или Ь?</h1>
-  <p class="lead">Словарный диктант, шаг «мой / моя» для ь после шипящих, повторяем разделительные ъ и ь спокойно, по одной ступени. У каждого задания есть кнопка «Показать правило».</p>
+  <h1>Мой или моя? Ъ или Ь? И новое: кас/кос</h1>
+  <p class="lead">Словарный диктант, шаг «мой / моя» для ь после шипящих, повторяем разделительные ъ и ь и новая тема 6 класса: корень -кас- — -кос-. У каждого задания есть кнопка «Показать правило».</p>
 </header>
 
 <div class="badges" id="badgeRow" aria-label="Коллекция наград"><span class="label">Коллекция наград</span><div class="brow" id="badgeList"></div></div>
@@ -608,8 +608,10 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
     <a href="#rz1n" class="c-nb"><span>5</span>Упр. 263</a>
     <a href="#rz2" class="c-sc"><span>6</span>Ъ или Ь</a>
     <a href="#rz2n" class="c-nb"><span>7</span>Упр. 955</a>
-    <a href="#clap" class="c-sc"><span>8</span>Лови ошибку и блиц</a>
-    <a href="#pr2" class="c-nb"><span>9</span>Прямая речь</a>
+    <a href="#kas" class="c-sc"><span>8</span>Кас/кос</a>
+    <a href="#kasn" class="c-nb"><span>9</span>Упр. 310, 311</a>
+    <a href="#clap" class="c-sc"><span>10</span>Лови ошибку и блиц</a>
+    <a href="#pr2" class="c-nb"><span>11</span>Прямая речь</a>
     <a href="#hw"><span>ДЗ</span>Домашнее задание</a>
   </div>
 </nav>
@@ -619,7 +621,7 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 <button class="rv-tab" type="button" id="rvTab">Повторить на след. уроке</button>
 <aside class="rv-panel" id="rvPanel" hidden aria-label="Темы на повторение">
   <div class="rv-head"><b>Повторить на следующем уроке</b><button class="rv-x" type="button" id="rvClose">Свернуть</button></div>
-  <div class="rv-body"><label><input type="checkbox" id="rv0" data-t="Словарные слова"><span>Словарные слова</span></label><label><input type="checkbox" id="rv1" data-t="Ь после шипящих (мой / моя)"><span>Ь после шипящих (мой / моя)</span></label><label><input type="checkbox" id="rv2" data-t="Безударные гласные в корне"><span>Безударные гласные в корне</span></label><label><input type="checkbox" id="rv3" data-t="Разделительный ь"><span>Разделительный ь</span></label><label><input type="checkbox" id="rv4" data-t="Разделительный ъ"><span>Разделительный ъ</span></label><label><input type="checkbox" id="rv5" data-t="Прямая речь"><span>Прямая речь</span></label><label><input type="checkbox" id="rv6" data-t="Внимательность"><span>Внимательность</span></label><label class="label" for="rvNote">Заметка</label><textarea id="rvNote" placeholder="Что ещё учесть"></textarea></div>
+  <div class="rv-body"><label><input type="checkbox" id="rv0" data-t="Словарные слова"><span>Словарные слова</span></label><label><input type="checkbox" id="rv1" data-t="Ь после шипящих (мой / моя)"><span>Ь после шипящих (мой / моя)</span></label><label><input type="checkbox" id="rv2" data-t="Безударные гласные в корне"><span>Безударные гласные в корне</span></label><label><input type="checkbox" id="rv3" data-t="Разделительный ь"><span>Разделительный ь</span></label><label><input type="checkbox" id="rv4" data-t="Разделительный ъ"><span>Разделительный ъ</span></label><label><input type="checkbox" id="rv5" data-t="Корень -кас- — -кос-"><span>Корень -кас- — -кос-</span></label><label><input type="checkbox" id="rv6" data-t="Прямая речь"><span>Прямая речь</span></label><label><input type="checkbox" id="rv7" data-t="Внимательность"><span>Внимательность</span></label><label class="label" for="rvNote">Заметка</label><textarea id="rvNote" placeholder="Что ещё учесть"></textarea></div>
   <div class="rv-msg" id="rvMsg"></div>
 </aside>
 <canvas class="dw-canvas" id="dwCanvas" aria-hidden="true"></canvas>
@@ -710,8 +712,22 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
   <details class="rbx"><summary>Показать правило</summary><div class="rbx-in"><b>Разделительный ъ.</b> Пишем только после приставки на согласную перед е, ё, ю, я: подъезд, объявление, съёмка. Ещё ъ пишем в словах с двух-, трёх-, четырёх-: двухъярусный, и в некоторых словах из других языков: объект, адъютант. Во всех остальных случаях пишем разделительный ь: серьёзный, обезьяна, курьер.</div></details>
 </section>
 
+<section class="part sec-sc" id="kas">
+  <div class="part-head"><span class="num">ШАГ 8 · НОВАЯ ТЕМА · 6 КЛАСС</span><span class="mode m-sc">☝ НА ЭКРАНЕ</span><h2>Корень -кас- — -кос-</h2></div>
+  <div class="theory"><span class="label">Правило · учебник 6 кл., § 47</span><p class="rule">В некоторых корнях гласная <b>чередуется</b>, и проверить её ударением нельзя. Один из таких корней: <b>-кас- — -кос-</b>.</p><p class="rule">Если после корня стоит суффикс <b>-а-</b>, пишем <b>а</b>: <i>к<b>а</b>с-а-ться, прик<b>а</b>с-а-ться, к<b>а</b>с-а-ние</i>.</p><p class="rule">Если суффикса -а- нет, пишем <b>о</b>: <i>к<b>о</b>с-ну-ться, прик<b>о</b>с-нове-ние, соприк<b>о</b>с-ну-ться</i>.</p><p class="rule">Как рассуждать: <i>прик..сновение</i> — корень кас/кос, за корнем нет суффикса -а-, значит, пишем <b>о</b>.</p></div>
+  <div class="memo"><span class="label">Лайфхак</span><p>Нашла корень кас/кос? Посмотри сразу за ним. Стоит суффикс -а-: пиши а. Нет: пиши о. Ударение здесь не помогает.</p></div>
+  <div class="ex" id="ex-kas"><div class="ex-head"><span class="tag">Учебник 6 кл., § 47</span><span class="ex-task">А или о? Посмотри, есть ли после корня суффикс -а-.</span></div></div>
+  <details class="rbx"><summary>Показать правило</summary><div class="rbx-in"><b>Корень -кас- — -кос-.</b> Это корень с чередованием, ударением его не проверяют. Если после корня стоит суффикс -а-, пишем а: касаться, прикасаться, касание. Если суффикса -а- нет, пишем о: коснуться, прикосновение.</div></details>
+</section>
+
+<section class="part sec-nb" id="kasn">
+  <div class="part-head"><span class="num">ШАГ 9 · НОВАЯ ТЕМА · 6 КЛАСС</span><span class="mode m-nb">✎ В ТЕТРАДИ</span><h2>Кас/кос в тетради</h2></div>
+  <div class="nb"><span class="label nb-l">В тетрадь · учебник 6 кл., упр. 310, 311</span><ol><li>Запиши число и тему «Буквы а и о в корне -кас- — -кос-». Перепиши правило.</li><li>Упр. 310. Выпиши сначала слова с буквой а, затем с буквой о. Над корнем напиши, есть ли суффикс -а-.<br><span class="nb-s">Весло к..снулось воды. Крючок к..сается дна. Наши лодки соприк..снулись. Ветка прик..снулась к лицу. Не прик..сайтесь к огню. Причинить боль к..санием. Точка соприк..сновения.</span></li><li>Упр. 311. Спиши, вставь буквы.<br><span class="nb-s">К..саюсь стены рукой. К..снитесь пола пальцами рук. Это тебя не к..сается. К..сание мяча о сетку.</span></li></ol><div class="wck" data-name="Упр. 310, 311" data-items="а: касается, прикасайтесь, касанием|о: коснулось, соприкоснулись, прикоснулась, соприкосновения|Касаюсь стены рукой. Коснитесь пола пальцами рук.|Это тебя не касается. Касание мяча о сетку."></div></div>
+  <details class="rbx"><summary>Показать правило</summary><div class="rbx-in"><b>Корень -кас- — -кос-.</b> Это корень с чередованием, ударением его не проверяют. Если после корня стоит суффикс -а-, пишем а: касаться, прикасаться, касание. Если суффикса -а- нет, пишем о: коснуться, прикосновение.</div></details>
+</section>
+
 <section class="part sec-sc" id="clap">
-  <div class="part-head"><span class="num">ШАГ 8 · ИГРА</span><span class="mode m-sc">☝ НА ЭКРАНЕ</span><h2>Лови ошибку и блиц</h2></div>
+  <div class="part-head"><span class="num">ШАГ 10 · ИГРА</span><span class="mode m-sc">☝ НА ЭКРАНЕ</span><h2>Лови ошибку и блиц</h2></div>
   <div class="theory"><p>Слова появляются по одному, на каждое есть 4 секунды. Как только увидишь слово с ошибкой, жми кнопку. Нажмёшь на правильное слово, получишь штраф.</p></div>
   <div class="ex" id="ex-catch"></div>
   <div class="theory"><p>Блиц: ь после шипящих, ъ и ь, безударные. Не спеши: лучше верно, чем быстро. Ошибка отнимает 3 секунды.</p></div>
@@ -719,7 +735,7 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 </section>
 
 <section class="part sec-nb" id="pr2">
-  <div class="part-head"><span class="num">ШАГ 9 · ФИНИШ</span><span class="mode m-nb">✎ В ТЕТРАДИ</span><h2>Прямая речь</h2></div>
+  <div class="part-head"><span class="num">ШАГ 11 · ФИНИШ</span><span class="mode m-nb">✎ В ТЕТРАДИ</span><h2>Прямая речь</h2></div>
   <div class="theory"><span class="label">Правило · прямая речь</span><p class="rule"><b>А</b> — слова автора, <b>П</b> — прямая речь. Прямую речь берём в кавычки и начинаем с большой буквы.</p><p class="rule">Автор говорит первым: <b>А: «П».</b> <i>Мама сказала: «Пора обедать».</i></p><p class="rule">Автор говорит вторым: <b>«П», — а.</b> <i>«Пора обедать», — сказала мама.</i></p><p class="rule">Если в прямой речи вопрос или восклицание, знак ставим внутри кавычек, а запятую не ставим: <b>«П?» — а. «П!» — а.</b> <i>«Ты пообедала?» — спросила мама.</i></p></div>
   <div class="nb"><span class="label nb-l">В тетрадь · учебник 5 кл., упр. 966</span><ol><li>Спиши первые два предложения, расставляя знаки препинания. Над каждым напиши схему.<br><span class="nb-s">1) О чём ты мечтаешь спросил Петю его друг Коля. 2) Петя ответил Хотелось бы побывать на Луне.</span></li></ol><div class="wck" data-name="Упр. 966" data-items="1) «О чём ты мечтаешь?» — спросил Петю его друг Коля. («П?» — а.)|2) Петя ответил: «Хотелось бы побывать на Луне». (А: «П».)"></div></div>
   <details class="rbx"><summary>Показать правило</summary><div class="rbx-in"><b>Прямая речь.</b> А — слова автора, П — прямая речь. Автор первым: А: «П». Автор вторым: «П», — а. Знаки ? и ! ставим внутри кавычек, запятую после них не ставим: «П?» — а. «П!» — а. Слова автора после прямой речи пишем с маленькой буквы.</div></details>
@@ -871,6 +887,7 @@ const BADGES=[
  {id:'moy',ic:'🙋‍♀️',t:'Мой или моя',sec:'#moy,#err'},
  {id:'rz1',ic:'🪄',t:'Знаток ь',sec:'#rz1,#rz1n'},
  {id:'rz2',ic:'🧱',t:'Твёрдый знак',sec:'#rz2,#rz2n'},
+ {id:'kas',ic:'🔑',t:'Знаток чередований',sec:'#kas,#kasn'},
  {id:'catch',ic:'👀',t:'Зоркий глаз',sec:'#ex-catch'},
  {id:'blitz',ic:'⚡',t:'Молния',blitz:true},
  {id:'gold',ic:'🏆',t:'Урок без ошибок',gold:true}
@@ -1144,6 +1161,18 @@ OQ('#ex-rz2',[
  ['обез_яна',ZB,'ь','Обез- здесь не приставка: обезьяна.'],
  ['с_ёмка',BZ,'ъ','Приставка с-: съёмка.']
 ]);
+OQ('#ex-kas',[
+ ['к_саться',['а','о'],'а','После корня суффикс -а-: кас-а-ться.'],
+ ['к_снуться',['о','а'],'о','Суффикса -а- нет: кос-ну-ться.'],
+ ['прик_сновение',['а','о'],'о','Суффикса -а- нет: прикосновение.'],
+ ['соприк_саться',['о','а'],'а','Суффикс -а-: соприкасаться.'],
+ ['к_сание',['а','о'],'а','Суффикс -а-: кас-а-ние.'],
+ ['к_снёшься',['а','о'],'о','Суффикса -а- нет: коснёшься.'],
+ ['прик_саться',['о','а'],'а','Суффикс -а-: прикасаться.'],
+ ['прик_снулся',['о','а'],'о','Суффикса -а- нет: прикоснулся.'],
+ ['к_сательная',['а','о'],'а','Суффикс -а-: кас-а-тельная.'],
+ ['соприк_снуться',['а','о'],'о','Суффикса -а- нет: соприкоснуться.']
+]);
 catchGame($('#ex-catch'),[['вьюга',0],['ключь',1],['семья',0],['дочь',0],['обьём',1],['мяч',0],['пьеса',0],['трова',1],['подъезд',0],['камыш',0]],{'ключь':'ключ','обьём':'объём','трова':'трава'},'Лови ошибку: 10 слов, ошибок 3',4200);
 OQ('#ex-hw1',[
  ['врач_',['ь','—'],'—','Мой врач: без ь.'],
@@ -1161,7 +1190,7 @@ OQ('#ex-hw1',[
   const pool=[
  ['ключ_',['ь','—'],'—'],['ноч_',['ь','—'],'ь'],['мяч_',['ь','—'],'—'],['рож_',['ь','—'],'ь'],['камыш_',['ь','—'],'—'],['вещ_',['ь','—'],'ь'],['врач_',['ь','—'],'—'],['доч_',['ь','—'],'ь'],
  ['сем_я',['ь','—'],'ь'],['кл_юв',['ь','—'],'—'],['п_еса',['ъ','ь'],'ь'],['под_езд',['ъ','ь'],'ъ'],['вороб_и',['ъ','ь'],'ь'],['с_ёмка',['ъ','ь'],'ъ'],['обез_яна',['ъ','ь'],'ь'],['в_юга',['ъ','ь'],'ь'],
- ['тр_ва',['а','о'],'а'],['з_мля',['е','и'],'е'],['л_сник',['е','и'],'е'],['к_пуста',['а','о'],'а'],['м_роз',['а','о'],'о']
+ ['к_саться',['а','о'],'а'],['к_снуться',['а','о'],'о'],['прик_сновение',['а','о'],'о'],['к_сание',['а','о'],'а'],['тр_ва',['а','о'],'а'],['з_мля',['е','и'],'е'],['л_сник',['е','и'],'е'],['к_пуста',['а','о'],'а'],['м_роз',['а','о'],'о']
  ];
   const box=el('div','q');const item={box,done:false,ok:false};
   const top=el('div','blitz-top','<span>Время: <b class="bt">60</b></span><span>Очки: <b class="bs">0</b></span><span>Множитель: <b class="bm">×1</b></span><span>Рекорд: <b class="br">0</b></span>');
@@ -1200,13 +1229,13 @@ OQ('#ex-hw1',[
 
 /* Отчёт для мамы */
 (function(){
-  const SECS=[['#dictw','словарные слова'],['#moy,#err','ь после шипящих и безударные'],['#rz1,#rz1n','разделительный ь'],['#rz2,#rz2n','разделительные ъ и ь'],['#pr2','прямая речь']];
+  const SECS=[['#dictw','словарные слова'],['#moy,#err','ь после шипящих и безударные'],['#rz1,#rz1n','разделительный ь'],['#rz2,#rz2n','разделительные ъ и ь'],['#kas,#kasn','корень -кас- — -кос- (новая тема 6 класса)'],['#pr2','прямая речь']];
   function build(){
     const name=stuName()||'Адриана';const good=[],weak=[],skip=[];
     SECS.forEach(([sel,t])=>{const it=reg.filter(i=>i.box.closest&&i.box.closest(sel));const d=it.filter(i=>i.done),ok=d.filter(i=>i.ok).length;
       if(!d.length){skip.push(t);return;}const p=Math.round(ok/d.length*100);(p>=85?good:weak).push(t+' ('+ok+' из '+d.length+')');});
     const st=lessonStats();const pct=st.solved?Math.round(st.correct/st.solved*100):0;
-    const L=[name+', урок 1 ноября.','','Что делали: словарный диктант, ь после шипящих (мой / моя), безударные гласные, разделительные ъ и ь, прямая речь.','Результат урока: верно '+st.correct+' из '+st.solved+' заданий ('+pct+'%).'];
+    const L=[name+', урок 1 ноября.','','Что делали: словарный диктант, ь после шипящих (мой / моя), безударные гласные, разделительные ъ и ь, новая тема 6 класса: корень -кас- — -кос-, прямая речь.','Результат урока: верно '+st.correct+' из '+st.solved+' заданий ('+pct+'%).'];
     if(good.length)L.push('Хорошо получается: '+good.join('; ')+'.');
     if(weak.length)L.push('Продолжаем работать: '+weak.join('; ')+'.');
     if(skip.length)L.push('Не успели и перенесём на следующий урок: '+skip.join('; ')+'.');
