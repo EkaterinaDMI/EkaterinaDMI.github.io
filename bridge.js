@@ -69,7 +69,7 @@
 
   /* ---------- синхронизация ---------- */
   /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
-  const SKIP = '.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  const SKIP = '.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -110,6 +110,7 @@
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
       else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
+      else if (ev.k === 'open') { const el = byPath(ev.p); if (el) { el.classList.toggle('st-open', !!ev.v); gateUpdate(); if (!T && !replay && ev.v) setTimeout(() => { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); flashCall(el); }, 80); } }
       else if (ev.k === 'goto' && !replay) { const el = byPath(ev.p); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); if (!T) flashCall(el); } }
     } catch (err) { console.warn('sync', err); }
   }
@@ -128,6 +129,24 @@
   let peerEl = null;
   function markPeer(p, label){ if (peerEl) { peerEl.classList.remove('peer-here'); peerEl.removeAttribute('data-peer'); peerEl = null; } const el = p != null ? byPath(p) : null; if (el) { peerEl = el; el.classList.add('peer-here'); el.setAttribute('data-peer', label || 'Ученик здесь'); } }
   function describe(p){ const el = byPath(p); if (!el) return ''; const sec = el.closest('section.part'); const h = sec && sec.querySelector('h2'); let s = h ? h.textContent.trim() : ''; if (sec) { const qs = Array.prototype.filter.call(sec.querySelectorAll('.q,.nb'), x => !x.closest('.tk-hidden')); const q = el.closest('.q,.nb'); const i = q ? qs.indexOf(q) : -1; if (i >= 0 && qs.length > 1) s += ' · задание ' + (i + 1) + ' из ' + qs.length; } return s; }
+  /* Пошаговый урок: ученик видит только те шаги, которые открыл учитель */
+  const gst = document.createElement('style'); gst.textContent = '.gate-btn{order:-1;justify-self:start;font:700 14px/1 system-ui,sans-serif;border:2px solid #1f9d55;color:#1f9d55;background:#fff;border-radius:999px;padding:9px 16px;cursor:pointer}.st-open>.gate-btn{background:#1f9d55;color:#fff}.st-mode .gate-btn{display:none!important}.tc-mode section.part.st-open{box-shadow:-10px 0 0 -4px #1f9d55}html.st-mode:not(.hw-mode) section.part:not(.st-open):not(#errpanel){display:none!important}.gate-wait{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;display:none;max-width:min(420px,90vw);text-align:center;background:#fff;color:#222;border-radius:20px;padding:26px 24px;box-shadow:0 10px 40px rgba(0,0,0,.18);font:600 18px/1.4 system-ui,sans-serif}.gate-wait span{display:block;font-size:44px;margin-bottom:8px}';
+  document.documentElement.appendChild(gst);
+  const gw = document.createElement('div'); gw.className = 'gate-wait'; gw.innerHTML = '<span>⏳</span>Сейчас учитель откроет задание';
+  function gateUpdate(){ if (T) { document.querySelectorAll('.gate-btn').forEach(b => { b.textContent = b.parentElement.classList.contains('st-open') ? '✓ Открыто ученику · скрыть' : '▶ Открыть ученику'; }); return; }
+    const hw = document.documentElement.classList.contains('hw-mode');
+    document.querySelectorAll('nav.chips a[href^="#"]').forEach(a => { let s = null; try { s = document.querySelector(a.getAttribute('href')); } catch (e) {} if (s && s.matches('section.part')) a.style.display = (hw || s.classList.contains('st-open')) ? '' : 'none'; });
+    if (!gw.isConnected) document.documentElement.appendChild(gw);
+    gw.style.display = (!hw && !document.querySelector('section.part.st-open')) ? 'block' : 'none'; }
+  window.__gateUpdate = gateUpdate;
+  const setOpen = (sec, v) => { const p = pathOf(sec); if (p == null) return; const ev = { k: 'open', p, v: !!v }; apply(ev, true); send(ev); };
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('section.part').forEach(sec => { if (sec.id === 'errpanel') return;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'gate-btn'; b.textContent = '▶ Открыть ученику';
+      b.addEventListener('click', e => { e.stopPropagation(); if (T) setOpen(sec, !sec.classList.contains('st-open')); });
+      sec.appendChild(b); });
+    gateUpdate(); });
+  new MutationObserver(gateUpdate).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   /* учитель: кнопка «Позвать сюда» у задания под мышкой */
   if (T) addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'call-btn'; b.textContent = '📍 Позвать сюда'; document.documentElement.appendChild(b);
@@ -147,6 +166,7 @@
   window.__dwSync = { path: pathOf, byPath, emit: ev => send(packDraw(ev)) };
   window.__sync = {
     apply, anchor, describe, markPeer,
+    openAll: v => document.querySelectorAll('section.part').forEach(sec => { if (sec.id !== 'errpanel' && sec.id !== 'hw') setOpen(sec, v); }),
     active: () => (act != null && Date.now() - actAt < 120000) ? act : null,
     section: p => { const el = byPath(p); const sec = el && el.closest('section.part'); const h = sec && sec.querySelector('h2'); return h ? h.textContent.trim() : ''; },
     scrollTo: p => { const el = byPath(p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }

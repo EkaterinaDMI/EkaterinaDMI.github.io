@@ -297,6 +297,7 @@ h2{font-size:1.35rem}
     const bar=$('#bar');bar.hidden=false;
     if(T){
       bar.innerHTML='<span class="who"><span class="dot" id="peer" title="Ученик"></span><b></b></span><span id="where" class="st">Ученик ещё не открыл урок</span><span class="sp"></span>'+
+        '<button type="button" class="tb" id="openall">▶ <span class="lbl">Открыть всё</span></button>'+
         '<button type="button" class="tb" id="findme">🔎 <span class="lbl">Где ученик</span></button>'+
         '<button type="button" class="tb" id="follow" aria-pressed="false">👀 <span class="lbl">Следить</span></button>'+
         '<button type="button" class="tb" id="call">📍 <span class="lbl">Позвать сюда</span></button>'+
@@ -323,6 +324,7 @@ h2{font-size:1.35rem}
       let follow=false,peer=null;const fb=$('#follow');
       const spot=()=>peer?(peer.act||peer.anchor):null;
       fb.onclick=()=>{follow=!follow;fb.setAttribute('aria-pressed',String(follow));if(follow&&spot())W.__sync.scrollTo(spot());};
+      let allOpen=false;$('#openall').onclick=()=>{allOpen=!allOpen;W.__sync.openAll(allOpen);$('#openall .lbl').textContent=allOpen?'Закрыть всё':'Открыть всё';};
       $('#findme').onclick=()=>{const p=spot();if(p)W.__sync.scrollTo(p);else{const l=$('#findme .lbl');l.textContent='Ученика нет в листе';setTimeout(()=>{l.textContent='Где ученик';},1800);}};
       $('#call').onclick=()=>{const a=W.__sync.anchor();if(a!=null){window.__sheetAPI.emit({k:'goto',p:a});const l=$('#call .lbl');if(l){l.textContent='Позвала';setTimeout(()=>{l.textContent='Позвать сюда';},1500);}}};
       base.collection('presence').doc('s').onSnapshot(s=>{peer=s.data({serverTimestamps:'estimate'})||null;paint();if(follow&&spot())W.__sync.scrollTo(spot());},()=>{});
