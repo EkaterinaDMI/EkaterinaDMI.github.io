@@ -297,6 +297,7 @@ h2{font-size:1.35rem}
     const bar=$('#bar');bar.hidden=false;
     if(T){
       bar.innerHTML='<span class="who"><span class="dot" id="peer" title="Ученик"></span><b></b></span><span id="where" class="st">Ученик ещё не открыл урок</span><span class="sp"></span>'+
+        '<button type="button" class="tb" id="findme">🔎 <span class="lbl">Где ученик</span></button>'+
         '<button type="button" class="tb" id="follow" aria-pressed="false">👀 <span class="lbl">Следить</span></button>'+
         '<button type="button" class="tb" id="call">📍 <span class="lbl">Позвать сюда</span></button>'+
         '<button type="button" class="tb quiet" id="reset">↺ <span class="lbl">Заново</span></button>'+
@@ -316,15 +317,19 @@ h2{font-size:1.35rem}
     /* присутствие */
     function startPresence(){
       const me=base.collection('presence').doc(T?'t':'s');let last=null;const W=frame.contentWindow;
-      const beat=()=>{const a=T?null:W.__sync.anchor();last=a;me.set({at:FV.serverTimestamp(),anchor:a||null}).catch(()=>{});};
+      const beat=()=>{const a=T?null:W.__sync.anchor();const ac=T?null:W.__sync.active();last=a+'|'+ac;me.set({at:FV.serverTimestamp(),anchor:a||null,act:ac||null}).catch(()=>{});};
       beat();setInterval(beat,15000);
-      if(!T){let tm=null;W.addEventListener('scroll',()=>{clearTimeout(tm);tm=setTimeout(()=>{const a=W.__sync.anchor();if(a!==last)beat();},700);},{passive:true});return;}
+      if(!T){let tm=null;const soon=()=>{clearTimeout(tm);tm=setTimeout(()=>{const k=W.__sync.anchor()+'|'+W.__sync.active();if(k!==last)beat();},600);};W.addEventListener('scroll',soon,{passive:true});W.__onAct=soon;return;}
       let follow=false,peer=null;const fb=$('#follow');
-      fb.onclick=()=>{follow=!follow;fb.setAttribute('aria-pressed',String(follow));if(follow&&peer&&peer.anchor)W.__sync.scrollTo(peer.anchor);};
+      const spot=()=>peer?(peer.act||peer.anchor):null;
+      fb.onclick=()=>{follow=!follow;fb.setAttribute('aria-pressed',String(follow));if(follow&&spot())W.__sync.scrollTo(spot());};
+      $('#findme').onclick=()=>{const p=spot();if(p)W.__sync.scrollTo(p);else{const l=$('#findme .lbl');l.textContent='Ученика нет в листе';setTimeout(()=>{l.textContent='Где ученик';},1800);}};
       $('#call').onclick=()=>{const a=W.__sync.anchor();if(a!=null){window.__sheetAPI.emit({k:'goto',p:a});const l=$('#call .lbl');if(l){l.textContent='Позвала';setTimeout(()=>{l.textContent='Позвать сюда';},1500);}}};
-      base.collection('presence').doc('s').onSnapshot(s=>{peer=s.data({serverTimestamps:'estimate'})||null;paint();if(follow&&peer&&peer.anchor)W.__sync.scrollTo(peer.anchor);},()=>{});
+      base.collection('presence').doc('s').onSnapshot(s=>{peer=s.data({serverTimestamps:'estimate'})||null;paint();if(follow&&spot())W.__sync.scrollTo(spot());},()=>{});
       function paint(){const at=peer&&peer.at&&peer.at.toMillis?peer.at.toMillis():0;const on=at&&Date.now()-at<45000;$('#peer').className='dot '+(on?'on':'');
-        const sec=on&&peer.anchor?W.__sync.section(peer.anchor):'';
+        const sp=on?spot():null;const nm=(bar.querySelector('.who b').textContent||'Ученик').split(' ')[0];
+        if(W.__sync.markPeer)W.__sync.markPeer(sp,'👀 '+nm+' здесь');
+        const sec=sp?(W.__sync.describe?W.__sync.describe(sp):W.__sync.section(sp)):'';
         $('#where').innerHTML=on?(sec?'Сейчас: <b></b>':'Ученик в сети'):'Ученик не в сети';const b=$('#where b');if(b)b.textContent=sec;fit();}
       setInterval(paint,10000);
       let armed=false;const rb=$('#reset'),rl=rb.querySelector('.lbl');

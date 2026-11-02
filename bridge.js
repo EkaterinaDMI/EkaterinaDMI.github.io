@@ -110,18 +110,46 @@
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
       else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
-      else if (ev.k === 'goto' && !replay) { const el = byPath(ev.p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      else if (ev.k === 'goto' && !replay) { const el = byPath(ev.p); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); if (!T) flashCall(el); } }
     } catch (err) { console.warn('sync', err); }
   }
-  function anchor(){ for (const f of [0.3, 0.45, 0.2, 0.6]) { const el = document.elementFromPoint(Math.round(innerWidth / 2), Math.round(innerHeight * f)); const a = el && !el.closest('nav.chips,#dwBar,.progress') && el.closest('.q,.ex,.nb,.theory,.memo,.part-head,.ui-card,.hwc,section.part'); if (a) return pathOf(a); } return null; }
+  /* где находится человек: задание в середине экрана (сначала мелкие блоки, потом крупные) */
+  const TGT = '.q,.nb,.wck,.theory,.memo,.part-head,.ui-card,.hwc';
+  function anchor(){ for (const f of [0.42, 0.3, 0.55, 0.2, 0.68]) { for (const fx of [0.5, 0.35, 0.65]) { const el = document.elementFromPoint(Math.round(innerWidth * fx), Math.round(innerHeight * f)); if (!el || el.closest('nav.chips,#dwBar,.progress,.call-btn')) continue; const a = el.closest(TGT) || el.closest('.ex,section.part'); if (a) return pathOf(a); } } return null; }
+  /* последнее задание, в котором ученик что-то делал */
+  let act = null, actAt = 0;
+  const markAct = e => { const t = e.target; if (!(t instanceof Element)) return; const q = t.closest('.q,.nb,.wck,.ui-card'); if (!q || t.closest('nav.chips,#dwBar,.progress')) return; const p = pathOf(q); if (p == null) return; act = p; actAt = Date.now(); if (window.__onAct) window.__onAct(); };
+  document.addEventListener('pointerdown', markAct, true); document.addEventListener('focusin', markAct, true);
+  /* подсветка: «ученик здесь» у учителя, «учитель зовёт сюда» у ученика */
+  const st = document.createElement('style'); st.textContent = '.peer-here{position:relative;outline:3px solid #ff6a00!important;outline-offset:4px;border-radius:12px}.peer-here::before{content:attr(data-peer);position:absolute;top:-13px;right:10px;z-index:6;background:#ff6a00;color:#fff;font:700 12px/1.6 system-ui,sans-serif;padding:1px 10px;border-radius:999px;white-space:nowrap;pointer-events:none}.call-here{position:relative;animation:callPulse 1s ease-in-out 4;outline:4px solid #2f80ed!important;outline-offset:4px;border-radius:12px}.call-here::after{content:"Учитель зовёт сюда";position:absolute;top:-14px;left:10px;z-index:6;background:#2f80ed;color:#fff;font:700 13px/1.6 system-ui,sans-serif;padding:2px 12px;border-radius:999px;pointer-events:none}@keyframes callPulse{50%{outline-color:#9cc3ff}}.call-btn{position:fixed;z-index:80;display:none;font:600 13px system-ui,sans-serif;border:none;border-radius:999px;padding:6px 12px;background:#2f80ed;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}.call-btn.sent{background:#1f9d55}.call-pick{outline:2px dashed #2f80ed!important;outline-offset:4px;border-radius:12px}';
+  document.documentElement.appendChild(st);
+  let callT = null;
+  function flashCall(el){ document.querySelectorAll('.call-here').forEach(x => x.classList.remove('call-here')); el.classList.add('call-here'); clearTimeout(callT); callT = setTimeout(() => el.classList.remove('call-here'), 6000); }
+  let peerEl = null;
+  function markPeer(p, label){ if (peerEl) { peerEl.classList.remove('peer-here'); peerEl.removeAttribute('data-peer'); peerEl = null; } const el = p != null ? byPath(p) : null; if (el) { peerEl = el; el.classList.add('peer-here'); el.setAttribute('data-peer', label || 'Ученик здесь'); } }
+  function describe(p){ const el = byPath(p); if (!el) return ''; const sec = el.closest('section.part'); const h = sec && sec.querySelector('h2'); let s = h ? h.textContent.trim() : ''; if (sec) { const qs = Array.prototype.filter.call(sec.querySelectorAll('.q,.nb'), x => !x.closest('.tk-hidden')); const q = el.closest('.q,.nb'); const i = q ? qs.indexOf(q) : -1; if (i >= 0 && qs.length > 1) s += ' · задание ' + (i + 1) + ' из ' + qs.length; } return s; }
+  /* учитель: кнопка «Позвать сюда» у задания под мышкой */
+  if (T) addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'call-btn'; b.textContent = '📍 Позвать сюда'; document.documentElement.appendChild(b);
+    let cur = null, hideT = null;
+    const place = el => { const r = el.getBoundingClientRect(); b.style.display = 'block'; b.style.top = Math.max(4, r.top + 6) + 'px'; b.style.left = Math.min(innerWidth - b.offsetWidth - 8, r.right - b.offsetWidth - 40) + 'px'; };
+    document.addEventListener('mousemove', e => { if (e.target === b) return; const t = e.target instanceof Element ? e.target.closest('.q,.nb,.wck,.ui-card,.part-head') : null;
+      if (t && !t.closest('#dwBar,.progress,nav.chips,.tk-hidden')) { clearTimeout(hideT); if (cur !== t) { if (cur) cur.classList.remove('call-pick'); cur = t; b.classList.remove('sent'); b.textContent = '📍 Позвать сюда'; } place(t); }
+      else { clearTimeout(hideT); hideT = setTimeout(() => { b.style.display = 'none'; if (cur) cur.classList.remove('call-pick'); cur = null; }, 700); } }, { passive: true });
+    b.addEventListener('mouseenter', () => { clearTimeout(hideT); if (cur) cur.classList.add('call-pick'); });
+    b.addEventListener('mouseleave', () => { if (cur) cur.classList.remove('call-pick'); });
+    b.addEventListener('click', e => { e.stopPropagation(); if (!cur) return; const p = pathOf(cur); if (p == null) return; send({ k: 'goto', p }); b.classList.add('sent'); b.textContent = '✓ Позвала'; });
+    addEventListener('scroll', () => { if (cur && b.style.display === 'block') place(cur); }, { passive: true });
+  });
   /* линии рисунка: база не хранит массив внутри массива, поэтому точки уходят строкой */
   const packDraw = ev => { if (ev && ev.k === 'dadd' && ev.s && Array.isArray(ev.s.pts)) { const st = Object.assign({}, ev.s); st.pj = JSON.stringify(st.pts.map(q => [Math.round(q[0] * 1e4) / 1e4, Math.round(q[1] * 1e4) / 1e4])); delete st.pts; return { k: 'dadd', s: st }; } return ev; };
   const unpackDraw = ev => { if (ev && ev.k === 'dadd' && ev.s && ev.s.pj && !ev.s.pts) { const st = Object.assign({}, ev.s); try { st.pts = JSON.parse(st.pj); } catch (e) { st.pts = []; } return { k: 'dadd', s: st }; } return ev; };
   window.__dwSync = { path: pathOf, byPath, emit: ev => send(packDraw(ev)) };
   window.__sync = {
-    apply, anchor,
+    apply, anchor, describe, markPeer,
+    active: () => (act != null && Date.now() - actAt < 120000) ? act : null,
     section: p => { const el = byPath(p); const sec = el && el.closest('section.part'); const h = sec && sec.querySelector('h2'); return h ? h.textContent.trim() : ''; },
-    scrollTo: p => { const el = byPath(p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    scrollTo: p => { const el = byPath(p); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   };
 
   /* В окне «Урок закончен»: вместо отчёта для мамы — отчёт для Claude (учитель) */
