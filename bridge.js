@@ -130,7 +130,7 @@
   function markPeer(p, label){ if (peerEl) { peerEl.classList.remove('peer-here'); peerEl.removeAttribute('data-peer'); peerEl = null; } const el = p != null ? byPath(p) : null; if (el) { peerEl = el; el.classList.add('peer-here'); el.setAttribute('data-peer', label || 'Ученик здесь'); } }
   function describe(p){ const el = byPath(p); if (!el) return ''; const sec = el.closest('section.part'); const h = sec && sec.querySelector('h2'); let s = h ? h.textContent.trim() : ''; if (sec) { const qs = Array.prototype.filter.call(sec.querySelectorAll('.q,.nb'), x => !x.closest('.tk-hidden')); const q = el.closest('.q,.nb'); const i = q ? qs.indexOf(q) : -1; if (i >= 0 && qs.length > 1) s += ' · задание ' + (i + 1) + ' из ' + qs.length; } return s; }
   /* Пошаговый урок: ученик видит только те шаги, которые открыл учитель */
-  const gst = document.createElement('style'); gst.textContent = '.gate-btn{order:-1;justify-self:start;font:700 14px/1 system-ui,sans-serif;border:2px solid #1f9d55;color:#1f9d55;background:#fff;border-radius:999px;padding:9px 16px;cursor:pointer}.st-open>.gate-btn{background:#1f9d55;color:#fff}.st-mode .gate-btn{display:none!important}.tc-mode section.part.st-open{box-shadow:-10px 0 0 -4px #1f9d55}html.st-mode:not(.hw-mode) section.part:not(.st-open):not(#errpanel){display:none!important}.gate-wait{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;display:none;max-width:min(420px,90vw);text-align:center;background:#fff;color:#222;border-radius:20px;padding:26px 24px;box-shadow:0 10px 40px rgba(0,0,0,.18);font:600 18px/1.4 system-ui,sans-serif}.gate-wait span{display:block;font-size:44px;margin-bottom:8px}';
+  const gst = document.createElement('style'); gst.textContent = '.gate-btn{order:-1;justify-self:start;font:700 14px/1 system-ui,sans-serif;border:2px solid #1f9d55;color:#1f9d55;background:#fff;border-radius:999px;padding:9px 16px;cursor:pointer}.st-open>.gate-btn{background:#1f9d55;color:#fff}.st-mode .gate-btn{display:none!important}.tc-mode section.part.st-open{box-shadow:-10px 0 0 -4px #1f9d55}html.st-mode:not(.hw-mode) section.part:not(.st-open):not(#errpanel){display:none!important}.gate-wait{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);z-index:30;display:none;max-width:min(420px,90vw);text-align:center;background:#fff;color:#222;border-radius:20px;padding:26px 24px;box-shadow:0 10px 40px rgba(0,0,0,.18);font:600 18px/1.4 system-ui,sans-serif}.gate-wait span{display:block;font-size:44px;margin-bottom:8px}.st-mode .wck,.st-mode .nbmark,.st-mode #ex-dict,.st-mode #dictHint,.st-mode #dictRes,.st-mode .dict-veil,.st-mode .t-st-hide{display:none!important}';
   document.documentElement.appendChild(gst);
   const gw = document.createElement('div'); gw.className = 'gate-wait'; gw.innerHTML = '<span>⏳</span>Сейчас учитель откроет задание';
   function gateUpdate(){ if (T) { document.querySelectorAll('.gate-btn').forEach(b => { b.textContent = b.parentElement.classList.contains('st-open') ? '✓ Открыто ученику · скрыть' : '▶ Открыть ученику'; }); return; }
@@ -145,7 +145,9 @@
       const b = document.createElement('button'); b.type = 'button'; b.className = 'gate-btn'; b.textContent = '▶ Открыть ученику';
       b.addEventListener('click', e => { e.stopPropagation(); if (T) setOpen(sec, !sec.classList.contains('st-open')); });
       sec.appendChild(b); });
-    gateUpdate(); });
+    gateUpdate();
+    if (!T) document.querySelectorAll('.qn').forEach(q => { if (!/^Проверка учителя/.test(q.textContent.trim())) return; q.classList.add('t-st-hide'); const n = q.nextElementSibling; if (n && n.classList.contains('opts')) n.classList.add('t-st-hide'); });
+  });
   new MutationObserver(gateUpdate).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   /* учитель: кнопка «Позвать сюда» у задания под мышкой */
   if (T) addEventListener('DOMContentLoaded', () => {
