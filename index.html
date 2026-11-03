@@ -280,7 +280,7 @@ h2{font-size:1.35rem}
         if(extra&&extra.unsolved&&extra.unsolved.length)L.push('Не дошли (разделы без ответов): '+extra.unsolved.join('; '));
         const r=rev.exists?rev.data():null;if(r&&((r.topics||[]).length||r.note))L.push('','Повторить на следующем уроке: '+(r.topics||[]).join('; ')+(r.note?' · заметка: '+r.note:''));
         const I=imgs.docs.map(d=>d.data());if(I.length){L.push('','Свои задания картинкой:');I.forEach((d,i)=>L.push((i+1)+') ['+(d.sectionName||d.section)+'] '+(d.caption||'без подписи')+' · '+(d.check===true?'верно':d.check===false?'есть ошибки':'не проверено')+(d.note?' · ошибки: '+d.note:'')));}
-        if(ph.docs&&ph.docs.length)L.push('','Фото ДЗ прислано: '+ph.docs.length+' шт.');
+        if(ph.docs&&ph.docs.length){const tp=ph.docs.filter(x=>x.data().task);const hp=ph.docs.length-tp.length;if(tp.length)L.push('','Фото из тетради на уроке: '+tp.length+' шт. ('+[...new Set(tp.map(x=>x.data().label||''))].filter(Boolean).join('; ')+')');if(hp)L.push('','Фото ДЗ прислано: '+hp+' шт.');}
         if(dn&&dn.exists&&dn.data().done)L.push('Ученик отметил, что ДЗ выполнено.');
         return L.join('\n');
       },
