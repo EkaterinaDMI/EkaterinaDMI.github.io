@@ -155,7 +155,19 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   const pending=()=>inbox.filter(x=>!sheets.some(s=>s.src===x.file));
   const norm=t=>String(t||'').trim().toLowerCase().replace(/ё/g,'е');
   const pendingFor=s=>pending().filter(x=>(x.key&&s.key)?x.key===s.key:norm(x.student)===norm(s.name));
-  const findStu=r=>students.find(s=>s.key===r.key)||students.find(s=>!s.key&&norm(s.name)===norm(r.name)&&norm(s.grade||'')===norm(r.grade));
+  const gnum=g=>(String(g||'').match(/\d+/)||[''])[0];
+  const findStu=r=>students.find(s=>s.key===r.key)||students.find(s=>!s.key&&norm(s.name)===norm(r.name)&&(!gnum(s.grade)||gnum(s.grade)===gnum(r.grade)));
+  /* дубли: одно имя и тот же класс (или класс не указан) */
+  function dupGroups(){const by={};students.forEach(x=>{(by[norm(x.name)]=by[norm(x.name)]||[]).push(x);});const out=[];
+    Object.values(by).forEach(arr=>{if(arr.length<2)return;const gs={};arr.forEach(x=>{const g=gnum(x.grade);(gs[g]=gs[g]||[]).push(x);});const blank=gs['']||[];delete gs[''];const keys=Object.keys(gs);
+      if(!keys.length){out.push(blank);return;}keys.forEach((g,i)=>{const grp=gs[g].concat(i===0?blank:[]);if(grp.length>1)out.push(grp);});});return out;}
+  async function mergeInto(keep,others){const kr=fdb.collection('students').doc(keep.id);const upd={};
+    for(const o of others){for(const sh of sheetsOf(o.id))await fdb.collection('sheets').doc(sh.id).update({sid:keep.id});
+      const ls=await fdb.collection('students').doc(o.id).collection('lessons').get();for(const d of ls.docs)await kr.collection('lessons').doc(d.id).set(d.data());
+      if(!keep.current&&!upd.current&&o.current)upd.current=o.current;if(!keep.key&&!upd.key&&o.key)upd.key=o.key;if(!keep.grade&&!upd.grade&&o.grade)upd.grade=o.grade;
+      await clearColl(fdb.collection('students').doc(o.id).collection('lessons'));if(o.bid)await fdb.collection('board').doc(o.bid).delete().catch(()=>{});
+      await fdb.collection('students').doc(o.id).delete();}
+    if(Object.keys(upd).length)await kr.update(upd);await K.recompute(fdb,keep.id);}
   const missing=()=>roster.filter(r=>!findStu(r));
   async function importRoster(){
     const btn=$('#rosterGo');if(btn){btn.disabled=true;btn.textContent='Добавляю…';}
@@ -187,9 +199,17 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     open=null;history.replaceState(null,'',location.pathname);
     const free=sheets.filter(s=>!s.sid);
     const P=pending();
-    const M=missing();
-    $('#app').innerHTML=(M.length?'<section class="card today"><h2>Ученики из кабинета Claude</h2><p class="muted">Ещё нет на сайте: '+M.map(r=>esc(r.name)+' ('+esc(r.grade)+')').join(', ')+'.</p><div class="row"><button type="button" class="b main" id="rosterGo">Добавить всех ('+M.length+')</button></div></section>':'')+(P.length?'<section class="card today"><h2>Новые листы от Claude</h2><div id="inb" style="display:grid;gap:8px"></div></section>':'')+'<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
+    const M=missing();const D=dupGroups();
+    $('#app').innerHTML=(D.length?'<section class="card today"><h2>Ученики-двойники</h2><p class="muted">Эти ученики записаны несколько раз. В каждой группе нажми «Оставить этого» у нужного: листы, результаты и история остальных перейдут к нему, а лишние записи удалятся.</p><div id="dups" style="display:grid;gap:14px"></div></section>':'')+(M.length?'<section class="card today"><h2>Ученики из кабинета Claude</h2><p class="muted">Ещё нет на сайте: '+M.map(r=>esc(r.name)+' ('+esc(r.grade)+')').join(', ')+'.</p><div class="row"><button type="button" class="b main" id="rosterGo">Добавить всех ('+M.length+')</button></div></section>':'')+(P.length?'<section class="card today"><h2>Новые листы от Claude</h2><div id="inb" style="display:grid;gap:8px"></div></section>':'')+'<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
     const rg=$('#rosterGo');if(rg)rg.onclick=importRoster;
+    D.forEach(grp=>{const box=document.createElement('div');box.style.cssText='display:grid;gap:6px;padding:10px;border:1px dashed currentColor;border-radius:12px';
+      grp.forEach(x=>{const n=sheetsOf(x.id).length;const cur=sheets.find(z=>z.id===x.current);const r=document.createElement('div');r.className='row';
+        r.innerHTML='<span style="flex:1 1 240px;min-width:0"><b></b><br><span class="muted"></span></span><button type="button" class="b">Оставить этого</button>';
+        r.querySelector('b').textContent=(x.avatar||'')+' '+x.name+(x.grade?' · '+x.grade:' · класс не указан');
+        r.querySelector('.muted').textContent='Листов: '+n+(cur?' · текущий: '+short(cur.title):'')+' · очков: '+((x.stats&&x.stats.points)||0)+(x.createdAt?' · добавлен '+K.fmtDate(x.createdAt):'')+(x.key?'':' · не связан с кабинетом Claude');
+        armed(r.querySelector('button'),'Оставить этого, остальных удалить?',async()=>{await mergeInto(x,grp.filter(y=>y.id!==x.id));toast('Готово: остался один '+x.name);load();});
+        box.appendChild(r);});
+      $('#dups').appendChild(box);});
     const g=$('#grid');
     students.forEach(s=>{const st=s.stats||{};const lv=K.level(st.points||0);const cur=sheets.find(x=>x.id===s.current);
       const c=document.createElement('button');c.type='button';c.className='sc';
