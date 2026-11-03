@@ -199,15 +199,15 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
       const hd=hwdone[s.id];if(hd)c.insertAdjacentHTML('beforeend','<span class="now" style="background:#DFF5E3">ДЗ сдано · '+esc(hwWhen(hd.at))+'</span>');
       c.onclick=()=>showStudent(s.id);g.appendChild(c);});
     P.forEach(it=>{const r=document.createElement('div');r.className='row';
-      const match=students.find(x=>norm(x.name)===norm(it.student));
-      r.innerHTML='<span style="flex:1 1 220px;min-width:0"><b></b><br><span class="muted"></span></span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(x=>'<option value="'+x.id+'"'+(match&&match.id===x.id?' selected':'')+'>'+esc(x.name)+'</option>').join('')+'</select><button type="button" class="b hot">Добавить</button>';
+      const byName=students.filter(x=>norm(x.name)===norm(it.student));const match=(it.key&&students.find(x=>x.key===it.key))||(byName.length===1?byName[0]:null);
+      r.innerHTML='<span style="flex:1 1 220px;min-width:0"><b></b><br><span class="muted"></span></span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(x=>'<option value="'+x.id+'"'+(match&&match.id===x.id?' selected':'')+'>'+esc(x.name+(x.grade?' · '+x.grade:''))+'</option>').join('')+'</select><button type="button" class="b hot">Добавить</button>';
       r.querySelector('b').textContent=it.title||it.file;r.querySelector('.muted').textContent=(it.note||'')+(it.added?' · '+K.fmtDate(it.added):'');
       r.querySelector('button').onclick=async e=>{const v=r.querySelector('select').value;if(!v)return toast('Выбери ученика или сначала добавь его');const stu=students.find(x=>x.id===v);
-        e.target.textContent='Добавляю…';try{await addFromInbox(it,stu);toast('Лист добавлен, это урок сегодня у ученика '+stu.name);load();}catch(err){e.target.textContent='Добавить';toast('Не получилось: '+(err.message||err));}};
+        e.target.textContent='Добавляю…';try{await addFromInbox(it,stu);toast('Лист добавлен, это урок сегодня у ученика '+stu.name+(stu.grade?' ('+stu.grade+')':''));load();}catch(err){e.target.textContent='Добавить';toast('Не получилось: '+(err.message||err));}};
       $('#inb').appendChild(r);});
     const add=document.createElement('button');add.type='button';add.className='sc add';add.innerHTML='<b style="font-size:1.6rem">+</b><span>Добавить ученика</span>';add.onclick=()=>editStudent(null);g.appendChild(add);
     free.forEach(sh=>{const r=document.createElement('div');r.className='row';
-      r.innerHTML='<span style="flex:1 1 200px;min-width:0">'+esc(sh.title)+'</span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('')+'</select><button type="button" class="b">Привязать</button>';
+      r.innerHTML='<span style="flex:1 1 200px;min-width:0">'+esc(sh.title)+'</span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name+(s.grade?' · '+s.grade:''))+'</option>').join('')+'</select><button type="button" class="b">Привязать</button>';
       r.querySelector('button').onclick=async()=>{const v=r.querySelector('select').value;if(!v)return toast('Выбери ученика');const s=students.find(x=>x.id===v);await fdb.collection('sheets').doc(sh.id).update({sid:v,student:s.name});toast('Лист привязан');load();};
       $('#free').appendChild(r);});
   }
