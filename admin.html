@@ -152,7 +152,8 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   }
   const sheetsOf=sid=>sheets.filter(s=>s.sid===sid);
   /* новые листы, которые Claude выложил в папку inbox */
-  const pending=()=>inbox.filter(x=>!sheets.some(s=>s.src===x.file));
+  const stuOfItem=x=>(x.key&&students.find(s=>s.key===x.key))||null;
+  const pending=()=>inbox.filter(x=>!sheets.some(s=>s.src===x.file)).filter(x=>{const st=stuOfItem(x);if(!st)return true;const t=Date.parse(x.added||'')||0;return !sheets.some(s=>s.sid===st.id&&(Date.parse(s.createdAt||'')||0)>t);});
   const norm=t=>String(t||'').trim().toLowerCase().replace(/ё/g,'е');
   const pendingFor=s=>pending().filter(x=>(x.key&&s.key)?x.key===s.key:norm(x.student)===norm(s.name));
   const gnum=g=>(String(g||'').match(/\d+/)||[''])[0];
