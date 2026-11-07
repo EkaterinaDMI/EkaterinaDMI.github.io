@@ -97,6 +97,7 @@ h2{font:800 1.05rem/1.3 var(--f-d);margin:0 0 10px}
 .row .pt{font:800 1rem var(--f-d);font-variant-numeric:tabular-nums}
 .row.me{background:var(--accent-soft)}
 .row.gap{grid-template-columns:1fr;text-align:center;color:var(--muted);padding:4px}
+.hwl{display:grid;gap:8px}.hwl a{display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit;background:var(--surface);border:2px solid #f2a900;border-radius:14px;padding:12px 14px}.hwl a .tt{flex:1;min-width:0;font-weight:700}.hwl a .dt{color:var(--muted);font-size:.85rem;white-space:nowrap}.hwl a .op{background:#f2a900;color:#222;font-weight:700;border-radius:999px;padding:6px 12px;font-size:.88rem;white-space:nowrap}.hwl a.new{box-shadow:0 6px 18px rgba(242,169,0,.35)}
 .hist{display:grid;gap:8px}
 .h{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
 .h .tt{font-weight:600;min-width:0}
@@ -202,6 +203,7 @@ h2{font-size:1.35rem}
       const st=stu.stats||K.aggregate([]);const lv=K.level(st.points||0);
       const nm=stu.name||'';
       const lessonsSorted=lessons.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+      const hwItems=lessonsSorted.filter(l=>!String(l.id).startsWith('m-'));
       const bsorted=board.slice().sort((a,b)=>(b.points||0)-(a.points||0));
       const myIdx=bsorted.findIndex(b=>b.id===stu.bid);
       let rows='';
@@ -217,6 +219,7 @@ h2{font-size:1.35rem}
         '<div class="inner">'+
           (cur?'<section class="go live"><div class="txt"><span class="k">Урок готов</span><span class="t">'+esc(cur.title.replace(/^[^·]*·\s*/,''))+'</span></div><button type="button" id="goBtn">Начать урок</button></section>'
               :'<section class="go wait"><img alt="" src="'+(window.IMG?IMG.owlSleep:'')+'"><div class="txt"><span class="k">Совушка спит до урока</span><span class="t">Новый урок появится здесь, когда учитель его откроет</span></div></section>')+
+          (hwItems.length?'<section><h2>Домашние задания</h2><div class="hwl">'+hwItems.map((l,i)=>'<a href="index.html?s='+encodeURIComponent(l.id)+'"'+(i===0?' class="new"':'')+'><span class="tt">'+esc(String(l.title||'Урок').replace(/^[^·]*·\s*/,''))+'</span><span class="dt">'+K.fmtDate(l.date)+'</span><span class="op">Открыть</span></a>').join('')+'</div></section>':'')+
           '<section><h2>Мои успехи</h2><div class="tiles">'+
             '<div class="tile c1"><span class="n">'+(st.lessons||0)+'</span><span class="l">уроков пройдено</span></div>'+
             '<div class="tile c3"><span class="n">'+(st.correct||0)+'</span><span class="l">верных ответов</span></div>'+
