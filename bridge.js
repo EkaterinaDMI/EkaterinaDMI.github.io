@@ -309,5 +309,104 @@
 .st-mode .tk-hidden{display:none!important}.st-mode nav.chips a.tk-off{display:none}
 .st-mode .tk-x,.st-mode .rv-tab,.st-mode .rv-panel,.st-mode .ui-add,.st-mode .ui-del,.st-mode #dictShow,.st-mode #dictDone,.st-mode .dlist input,.st-mode .dlist .dmark,.st-mode .wck .inline,.st-mode .nbq .opts,.st-mode .tchk,.st-mode .ui-card .opts,.st-mode .ui-card textarea,.st-mode #finBtn,.st-mode #redo,.st-mode #saveMsg,.st-mode .hw-head p,.st-mode #hwSave,.st-mode #hwCopy,.st-mode .hwd{display:none!important}`;
   document.head.appendChild(css);
+  /* ---------- Ученик: строка «Что делать сейчас», меньше лишнего, рисование по кнопке на телефоне ---------- */
+  if (!T) addEventListener('load', () => {
+    const H = document.documentElement;
+    const gb = document.createElement('div'); gb.className = 'guide'; gb.setAttribute('role', 'status'); gb.setAttribute('aria-live', 'polite');
+    gb.innerHTML = '<div class="g-in"><span class="g-ic"></span><span class="g-tx"><small class="g-st"></small><b class="g-main"></b></span><button type="button" class="g-go" hidden></button></div>';
+    H.appendChild(gb);
+    const ic = gb.querySelector('.g-ic'), stp = gb.querySelector('.g-st'), main = gb.querySelector('.g-main'), go = gb.querySelector('.g-go');
+    let goFn = null; go.onclick = () => { if (goFn) goFn(); };
+    const secs = () => [...document.querySelectorAll('section.part')].filter(s => s.id !== 'hw' && s.id !== 'errpanel' && !s.classList.contains('tk-hidden'));
+    const stepName = sec => { const n = sec.querySelector('.part-head .num'); const h = sec.querySelector('h2'); return (n ? n.textContent.trim().replace(/\s+/g, ' ') : '') || (h ? h.textContent.trim() : ''); };
+    const isNb = sec => sec.classList.contains('sec-nb') || (!sec.querySelector('.q') && !!sec.querySelector('.nb'));
+    const answered = q => q.classList.contains('is-ok') || q.classList.contains('is-bad');
+    function how(q){
+      if (!q) return null;
+      if (q.closest('.nb,.wck')) return ['📓', 'Пиши в тетради. Потом нажми «📷 Прикрепить фото из тетради».'];
+      const inp = q.querySelector('input[type=text],input:not([type]),textarea');
+      if (inp) { const ph = (inp.getAttribute('placeholder') || '').trim(); return ['⌨️', (ph ? ph.replace(/[.…]+$/, '') : 'Напиши ответ') + ' и нажми «Проверить».']; }
+      if (q.querySelector('.gp,.wcard,.tok')) return ['👆', 'Нажми на нужное место, потом на ответ.'];
+      return ['👆', 'Нажми на правильный ответ. Проверка сразу.'];
+    }
+    function center(){ for (const f of [0.45, 0.35, 0.6, 0.25, 0.75]) { const el = document.elementFromPoint(innerWidth / 2, innerHeight * f); if (!el || el.closest('.guide,.dw-bar,.progress,.vtabs,.dwq')) continue; const s = el.closest('section.part'); if (s) return el; } return null; }
+    const howCache = new WeakMap();
+    function paint(){
+      const hwm = H.classList.contains('hw-mode'), vhw = H.classList.contains('view-hw');
+      gb.classList.toggle('with-tabs', hwm);
+      let i = '', s = '', m = '', g = null, gl = '';
+      if (vhw) {
+        const hw = document.getElementById('hw'); const ph = hw ? hw.querySelectorAll('.hwph-card').length : 0;
+        const done = hw && /Отправлено учителю/.test((hw.querySelector('.hwdone-st') || {}).textContent || '');
+        const left = [...document.querySelectorAll('.to-hw')].filter(t => !t.closest('#hw')).length;
+        s = 'Домашнее задание';
+        if (done) { i = '🎉'; m = 'Домашка отправлена учителю. Молодец!'; }
+        else if (!ph) { i = '📒'; m = (left ? 'Сделай задания на экране и в тетради.' : 'Сделай задания в тетради.') + ' Потом сфотографируй тетрадь.'; g = () => { const b = document.querySelector('.hwph'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' }); }; gl = '📷 К фото'; }
+        else { i = '✅'; m = 'Фото есть. Нажми «Я выполнил(а) домашнее задание».'; g = () => { const b = document.querySelector('.hwdone-btn'); if (b) { b.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }; gl = 'Отметить'; }
+      } else if (hwm) { i = '🎉'; s = 'Урок закончен'; m = 'Теперь открой домашнее задание.'; g = () => { const b = document.querySelector('.vtabs [data-v=hw]'); if (b) b.click(); }; gl = 'Открыть домашку'; }
+      else {
+        const open = secs().filter(x => x.classList.contains('st-open'));
+        if (!open.length) { i = '⏳'; s = 'Урок скоро начнётся'; m = 'Подожди: учитель сейчас откроет первое задание.'; }
+        else {
+          const el = center(); let sec = el && el.closest('section.part'); if (!sec || !sec.classList.contains('st-open')) sec = open[open.length - 1];
+          s = stepName(sec);
+          const qs = [...sec.querySelectorAll('.q')].filter(q => !q.closest('.tk-hidden'));
+          const allDone = qs.length && qs.every(answered);
+          const last = open[open.length - 1] === sec;
+          if (allDone && !isNb(sec)) { i = '✅'; m = last ? 'Шаг готов! Подожди: учитель откроет следующий.' : 'Шаг готов! Листай вниз к следующему.'; }
+          else if (isNb(sec) && !qs.length) { i = '📓'; m = 'Пиши в тетради. Когда закончишь, сфотографируй и прикрепи фото.'; }
+          else {
+            let q = el && el.closest('.q,.nb,.wck'); if (!q || !sec.contains(q)) q = qs.find(x => !answered(x)) || null;
+            if (!q && el && el.closest('.theory,.memo')) { i = '📖'; m = 'Прочитай правило. Задания ниже.'; }
+            else { const h = how(q) || ['👆', 'Выполняй задания этого шага.']; i = h[0]; m = h[1]; }
+            const nxt = qs.find(x => !answered(x));
+            const rr = nxt && nxt.getBoundingClientRect(); if (nxt && !isNb(sec) && (rr.bottom < 90 || rr.top > innerHeight - 90)) { g = () => nxt.scrollIntoView({ behavior: 'smooth', block: 'center' }); gl = 'К заданию'; }
+          }
+        }
+      }
+      ic.textContent = i; stp.textContent = s; main.textContent = m; goFn = g; go.hidden = !g; go.textContent = gl;
+    }
+    let tm = null; const soon = () => { if (tm) return; tm = setTimeout(() => { tm = null; paint(); }, 150); };
+    addEventListener('scroll', soon, { passive: true }); addEventListener('resize', soon);
+    document.addEventListener('click', () => setTimeout(paint, 250), true);
+    new MutationObserver(soon).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    new MutationObserver(soon).observe(H, { attributes: true, attributeFilter: ['class'] });
+    paint();
+    /* подпись способа ответа у каждого упражнения */
+    document.querySelectorAll('.ex').forEach(ex => { const t = ex.querySelector('.ex-task'); const q = ex.querySelector('.q'); if (!t || !q) return; const h = how(q); if (h) t.setAttribute('data-how', h[0] === '⌨️' ? '⌨️ Пиши' : '👆 Нажимай'); });
+    /* рисование на телефоне — по кнопке */
+    const bar = document.getElementById('dwBar');
+    if (bar) { const k = document.createElement('button'); k.type = 'button'; k.className = 'dwq'; k.textContent = '✏️'; k.title = 'Рисовать на экране'; H.appendChild(k);
+      k.onclick = () => { const on = !H.classList.contains('dw-show'); H.classList.toggle('dw-show', on); k.textContent = on ? '✕' : '✏️';
+        if (!on) { const n = bar.querySelector('[data-tool="none"]'); if (n) n.click(); } }; }
+  });
+
+  const gcss = document.createElement('style');
+  gcss.textContent = `.guide{display:none}
+.st-mode .guide{display:block;position:fixed;left:0;right:0;top:0;z-index:44;padding:8px 10px;background:linear-gradient(var(--bg,#fff) 70%,transparent);pointer-events:none}
+.st-mode .guide.with-tabs{padding-top:58px}
+.guide .g-in{pointer-events:auto;max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px;background:#1f2a44;color:#fff;border-radius:16px;padding:9px 12px;box-shadow:0 6px 20px rgba(0,0,0,.18);font:15px/1.3 system-ui,-apple-system,sans-serif}
+.guide .g-ic{font-size:1.6rem;line-height:1;flex:none;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.guide .g-tx{flex:1;min-width:0;display:grid;gap:1px}
+.guide .g-st{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guide .g-st:empty{display:none}
+.guide .g-main{font-weight:700}
+.guide .g-go{flex:none;font:700 .88rem/1 system-ui,sans-serif;border:none;border-radius:999px;padding:10px 14px;background:#ffd43b;color:#222;cursor:pointer;white-space:nowrap}
+.st-mode .wrap{padding-top:78px}
+.st-mode.hw-mode .wrap{padding-top:130px}
+.st-mode section.part{scroll-margin-top:120px}
+.st-mode.hw-mode section.part{scroll-margin-top:170px}
+.st-mode nav.chips,.st-mode .badges,.st-mode .stubar,.st-mode .gate-wait{display:none!important}
+.st-mode .ex-task[data-how]::before{content:attr(data-how);display:inline-block;margin-right:8px;font:700 .75rem/1 system-ui,sans-serif;background:#1f2a44;color:#fff;border-radius:999px;padding:4px 9px;vertical-align:middle}
+.st-mode section.part.sec-nb>.part-head::after{content:"📓 Этот шаг пишем в тетради";display:block;margin-top:10px;font:700 1rem/1.3 system-ui,sans-serif;background:#fff4d6;color:#5c4300;border:2px solid #f2a900;border-radius:12px;padding:10px 12px}
+.st-mode .hwdone-btn{font-size:1.05rem;padding:14px 20px;width:100%}
+.st-mode .hwph-add{font-size:1.05rem;padding:14px 20px;width:100%}
+.st-mode .hwph{border-width:3px;border-style:solid}
+.dwq{display:none}
+@media (max-width:700px){.st-mode .dwq{display:grid;place-items:center;position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 60px);z-index:41;width:48px;height:48px;border-radius:50%;border:none;background:#1f2a44;color:#fff;font-size:1.3rem;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
+html.st-mode:not(.dw-show) .dw-bar{display:none!important}
+.st-mode .wrap{padding-bottom:140px}
+.st-mode.view-hw .dwq{display:none}}`;
+  document.head.appendChild(gcss);
   addEventListener('load', () => setTimeout(() => API.ready(), 400));
 })();

@@ -43,6 +43,7 @@ button{font:inherit}
 #msg button{font-weight:600;font-size:1rem;border:0;border-radius:12px;padding:12px 18px;background:var(--accent);color:#fff;cursor:pointer}
 @media (max-width:640px){#where{max-width:60vw}.tb{padding:5px 9px;font-size:.8rem}#bar .lbl{display:none}}
 
+#tour{position:fixed;inset:0;z-index:80;background:rgba(20,20,30,.55);display:grid;place-items:center;padding:16px}.tr-card{background:var(--surface);border-radius:22px;padding:24px 22px;max-width:400px;width:100%;display:grid;gap:10px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}.tr-ic{font-size:3rem;line-height:1}.tr-card h2{font:800 1.25rem/1.25 var(--f-d);margin:0}.tr-card p{margin:0;font-size:1rem;line-height:1.45}.tr-dots{display:flex;gap:6px;justify-content:center}.tr-dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.tr-dots i.on{background:var(--accent)}.tr-row{display:flex;gap:10px;justify-content:space-between;margin-top:6px}.tr-b{flex:1;border:0;border-radius:12px;padding:13px 16px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer}.tr-b.q{background:transparent;color:var(--muted);border:1.5px solid var(--line)}
 /* ---------- кабинет ---------- */
 #cab{max-width:860px;margin:0 auto;padding-bottom:48px}
 .sky{position:relative;overflow:hidden;background:linear-gradient(155deg,var(--sky1) 0%,var(--sky2) 100%);color:var(--skyink);border-radius:0 0 28px 28px;padding:calc(26px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) 26px max(18px,env(safe-area-inset-left,0px));display:grid;gap:16px}
@@ -97,6 +98,7 @@ h2{font:800 1.05rem/1.3 var(--f-d);margin:0 0 10px}
 .row .pt{font:800 1rem var(--f-d);font-variant-numeric:tabular-nums}
 .row.me{background:var(--accent-soft)}
 .row.gap{grid-template-columns:1fr;text-align:center;color:var(--muted);padding:4px}
+.hwtop{background:#FFF4D6;border:3px solid #F2A900;border-radius:20px;padding:16px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;box-shadow:0 10px 28px rgba(242,169,0,.25)}.hwtop .ic{font-size:2.4rem;line-height:1}.hwtop .txt{flex:1 1 220px;min-width:0;display:grid;gap:3px}.hwtop .k{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#8a6100;font-weight:800}.hwtop .t{font:800 1.1rem/1.3 var(--f-d)}.hwtop .s{font-size:.9rem;color:var(--muted)}.hwtop .hwbtn{flex:1 1 100%;text-align:center;text-decoration:none;border-radius:14px;padding:14px 22px;background:#F2A900;color:#222;font-weight:800;font-size:1.05rem;box-shadow:0 6px 0 rgba(0,0,0,.12)}@media(min-width:620px){.hwtop .hwbtn{flex:0 0 auto}}.hwl a .tt em{display:block;font-style:normal;font-size:.8rem;font-weight:600}.hwl a .tt em.ok{color:var(--ok)}.hwl a .tt em.no{color:var(--muted)}
 .hwl{display:grid;gap:8px}.hwl a{display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit;background:var(--surface);border:2px solid #f2a900;border-radius:14px;padding:12px 14px}.hwl a .tt{flex:1;min-width:0;font-weight:700}.hwl a .dt{color:var(--muted);font-size:.85rem;white-space:nowrap}.hwl a .op{background:#f2a900;color:#222;font-weight:700;border-radius:999px;padding:6px 12px;font-size:.88rem;white-space:nowrap}.hwl a.new{box-shadow:0 6px 18px rgba(242,169,0,.35)}
 .hist{display:grid;gap:8px}
 .h{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
@@ -190,10 +192,12 @@ h2{font-size:1.35rem}
     let stu;try{const s=await ref.get();if(!s.exists){msg('Страница не найдена','Проверь ссылку или попроси новую у учителя.');return;}stu=s.data();}
     catch(e){msg('Нет связи с сайтом','Проверь интернет и обнови страницу.');return;}
     document.title=(stu.name||'Мой кабинет')+' · Русский язык';
-    let lessons=[],board=[],cur=null,first=true;
+    let lessons=[],board=[],cur=null,first=true;const hwState={};
     async function loadMore(){
       try{lessons=(await ref.collection('lessons').get()).docs.map(d=>Object.assign({id:d.id},d.data()));}catch(e){}
       try{board=(await fdb.collection('board').get()).docs.map(d=>Object.assign({id:d.id},d.data()));}catch(e){}
+      const ids=lessons.filter(l=>!String(l.id).startsWith('m-')).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12).map(l=>l.id);
+      await Promise.all(ids.map(async id=>{try{const d=await fdb.collection('sheets').doc(id).collection('presence').doc('hw').get();hwState[id]=!!(d.exists&&d.get('done'));}catch(e){}}));
     }
     async function loadCur(){cur=null;if(stu.current){try{const s=await fdb.collection('sheets').doc(stu.current).get();if(s.exists)cur={id:s.id,title:s.get('title')||'Урок'};}catch(e){}}}
     await Promise.all([loadMore(),loadCur()]);render();
@@ -204,6 +208,8 @@ h2{font-size:1.35rem}
       const nm=stu.name||'';
       const lessonsSorted=lessons.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
       const hwItems=lessonsSorted.filter(l=>!String(l.id).startsWith('m-'));
+      const hwTop=hwItems.length&&hwState[hwItems[0].id]===false?hwItems[0]:null;
+      const curDone=!!(cur&&lessons.some(l=>l.id===cur.id));
       const bsorted=board.slice().sort((a,b)=>(b.points||0)-(a.points||0));
       const myIdx=bsorted.findIndex(b=>b.id===stu.bid);
       let rows='';
@@ -217,9 +223,10 @@ h2{font-size:1.35rem}
           '<div class="xp-t"><span>Очки: <b>'+(st.points||0)+'</b></span><span>'+(lv.next?'До уровня «'+esc(lv.next.name)+'»: <b>'+lv.toNext+'</b>':'Высший уровень!')+'</span></div></div>'+
         '</header>'+
         '<div class="inner">'+
-          (cur?'<section class="go live"><div class="txt"><span class="k">Урок готов</span><span class="t">'+esc(cur.title.replace(/^[^·]*·\s*/,''))+'</span></div><button type="button" id="goBtn">Начать урок</button></section>'
+          (hwTop?'<section class="hwtop"><div class="ic">📒</div><div class="txt"><span class="k">Домашнее задание</span><span class="t">'+esc(String(hwTop.title||'Урок').replace(/^[^·]*·\s*/,''))+'</span><span class="s">Сделай в тетради → сфотографируй → нажми «Я выполнил(а)»</span></div><a class="hwbtn" href="index.html?s='+encodeURIComponent(hwTop.id)+'">Открыть домашку</a></section>':'')+
+          (cur&&!curDone?'<section class="go live"><div class="txt"><span class="k">Урок готов</span><span class="t">'+esc(cur.title.replace(/^[^·]*·\s*/,''))+'</span></div><button type="button" id="goBtn">Начать урок</button></section>'
               :'<section class="go wait"><img alt="" src="'+(window.IMG?IMG.owlSleep:'')+'"><div class="txt"><span class="k">Совушка спит до урока</span><span class="t">Новый урок появится здесь, когда учитель его откроет</span></div></section>')+
-          (hwItems.length?'<section><h2>Домашние задания</h2><div class="hwl">'+hwItems.map((l,i)=>'<a href="index.html?s='+encodeURIComponent(l.id)+'"'+(i===0?' class="new"':'')+'><span class="tt">'+esc(String(l.title||'Урок').replace(/^[^·]*·\s*/,''))+'</span><span class="dt">'+K.fmtDate(l.date)+'</span><span class="op">Открыть</span></a>').join('')+'</div></section>':'')+
+          (hwItems.length?'<section><h2>Все домашние задания</h2><div class="hwl">'+hwItems.map(l=>'<a href="index.html?s='+encodeURIComponent(l.id)+'"><span class="tt">'+esc(String(l.title||'Урок').replace(/^[^·]*·\s*/,''))+'<em class="'+(hwState[l.id]?'ok':'no')+'">'+(hwState[l.id]?'✅ Сделано':'Не отмечено')+'</em></span><span class="dt">'+K.fmtDate(l.date)+'</span><span class="op">Открыть</span></a>').join('')+'</div></section>':'')+
           '<section><h2>Мои успехи</h2><div class="tiles">'+
             '<div class="tile c1"><span class="n">'+(st.lessons||0)+'</span><span class="l">уроков пройдено</span></div>'+
             '<div class="tile c3"><span class="n">'+(st.correct||0)+'</span><span class="l">верных ответов</span></div>'+
@@ -240,6 +247,23 @@ h2{font-size:1.35rem}
     }
     function stars(){const c=$('#stars');if(!c)return;const r=c.getBoundingClientRect();const d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;const x=c.getContext('2d');x.scale(d,d);
       let s=7;const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;};for(let i=0;i<70;i++){x.globalAlpha=.25+rnd()*.6;x.fillStyle='#fff';x.beginPath();x.arc(rnd()*r.width,rnd()*r.height,rnd()*1.6+.3,0,7);x.fill();}}
+  }
+
+  /* ================= ПОДСКАЗКА «КАК РАБОТАТЬ» ================= */
+  const TOUR=[
+    ['🧭','Смотри на тёмную полоску сверху','Она всегда подсказывает, что делать сейчас: нажать, написать или работать в тетради.'],
+    ['⏳','Задания открывает учитель','Шаги появляются по одному. Новый шаг откроется сам, и страница прокрутится к нему.'],
+    ['👆','Как отвечать','👆 Нажимай — выбери ответ. ⌨️ Пиши — напечатай слово и нажми «Проверить». 📓 Тетрадь — пиши в тетради и прикрепи фото.'],
+    ['📒','Домашка','Когда урок закончится, здесь откроется домашнее задание. Его же всегда найдёшь в своём кабинете.']
+  ];
+  function tour(i){
+    let o=document.getElementById('tour');if(!o){o=document.createElement('div');o.id='tour';document.body.appendChild(o);}
+    const t=TOUR[i];const last=i===TOUR.length-1;
+    o.innerHTML='<div class="tr-card" role="dialog" aria-modal="true" aria-label="Как работать на уроке"><div class="tr-ic">'+t[0]+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p><div class="tr-dots">'+TOUR.map((_,j)=>'<i'+(j===i?' class="on"':'')+'></i>').join('')+'</div><div class="tr-row">'+(i?'<button type="button" class="tr-b q" id="trBack">Назад</button>':'<button type="button" class="tr-b q" id="trSkip">Пропустить</button>')+'<button type="button" class="tr-b" id="trNext">'+(last?'Понятно!':'Дальше')+'</button></div></div>';
+    o.hidden=false;
+    const close=()=>{o.hidden=true;try{localStorage.setItem('tour1','1');}catch(e){}};
+    $('#trNext').onclick=()=>last?close():tour(i+1);
+    const bk=$('#trBack');if(bk)bk.onclick=()=>tour(i-1);const sk=$('#trSkip');if(sk)sk.onclick=close;
   }
 
   /* ================= УРОК ================= */
@@ -308,8 +332,11 @@ h2{font-size:1.35rem}
         '<a class="tb quiet" href="admin.html">Ученики</a><span class="dot" id="conn" title="Связь"></span>';
       bar.querySelector('.who b').textContent=(stu&&stu.name)||sheet.student||sheet.title||'';
     }else{
-      bar.innerHTML=(sheet.sid?'<a class="tb quiet" href="index.html?u='+encodeURIComponent(sheet.sid)+'">← Мой кабинет</a>':'')+'<span class="who"><b></b></span><span class="sp"></span><span class="st">Связь</span><span class="dot" id="conn"></span>';
-      bar.querySelector('.who b').textContent=sheet.title||'';
+      bar.innerHTML=(sheet.sid?'<a class="tb quiet" href="index.html?u='+encodeURIComponent(sheet.sid)+'">← Кабинет</a>':'')+'<span class="who"><b></b></span><span class="sp"></span><button type="button" class="tb" id="help">❓ <span class="lbl">Как работать</span></button><span class="dot" id="conn"></span>';
+      bar.querySelector('.who b').textContent=String(sheet.title||'').replace(/^[^·]*·\s*/,'');
+      $('#help').onclick=()=>tour(0);
+      let seen=false;try{seen=localStorage.getItem('tour1')==='1';}catch(e){}
+      if(!seen)setTimeout(()=>tour(0),900);
     }
     function setConn(on){const d=$('#conn');if(d){d.className='dot '+(on?'on':'off');d.title=on?'Связь есть':'Нет связи';}}
     function fit(){const h=bar.offsetHeight;frame.style.top=h+'px';frame.style.height='calc(100% - '+h+'px)';}
