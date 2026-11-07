@@ -122,7 +122,7 @@
   const markAct = e => { const t = e.target; if (!(t instanceof Element)) return; const q = t.closest('.q,.nb,.wck,.ui-card'); if (!q || t.closest('nav.chips,#dwBar,.progress')) return; const p = pathOf(q); if (p == null) return; act = p; actAt = Date.now(); if (window.__onAct) window.__onAct(); };
   document.addEventListener('pointerdown', markAct, true); document.addEventListener('focusin', markAct, true);
   /* подсветка: «ученик здесь» у учителя, «учитель зовёт сюда» у ученика */
-  const st = document.createElement('style'); st.textContent = '.peer-here{position:relative;outline:3px solid #ff6a00!important;outline-offset:4px;border-radius:12px}.peer-here::before{content:attr(data-peer);position:absolute;top:-13px;right:10px;z-index:6;background:#ff6a00;color:#fff;font:700 12px/1.6 system-ui,sans-serif;padding:1px 10px;border-radius:999px;white-space:nowrap;pointer-events:none}.call-here{position:relative;animation:callPulse 1s ease-in-out 4;outline:4px solid #2f80ed!important;outline-offset:4px;border-radius:12px}.call-here::after{content:"Учитель зовёт сюда";position:absolute;top:-14px;left:10px;z-index:6;background:#2f80ed;color:#fff;font:700 13px/1.6 system-ui,sans-serif;padding:2px 12px;border-radius:999px;pointer-events:none}@keyframes callPulse{50%{outline-color:#9cc3ff}}.call-btn{position:fixed;z-index:80;display:none;font:600 13px system-ui,sans-serif;border:none;border-radius:999px;padding:6px 12px;background:#2f80ed;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}.call-btn.sent{background:#1f9d55}.call-pick{outline:2px dashed #2f80ed!important;outline-offset:4px;border-radius:12px}';
+  const st = document.createElement('style'); st.textContent = '.peer-here{position:relative;outline:3px solid #ff6a00!important;outline-offset:4px;border-radius:12px}.peer-here::before{content:attr(data-peer);position:absolute;top:-13px;right:10px;z-index:6;background:#ff6a00;color:#fff;font:700 12px/1.6 system-ui,sans-serif;padding:1px 10px;border-radius:999px;white-space:nowrap;pointer-events:none}.call-here{position:relative;animation:callPulse 1s ease-in-out 4;outline:4px solid #2f80ed!important;outline-offset:4px;border-radius:12px}.call-here::after{content:"Учитель зовёт сюда";position:absolute;top:-14px;left:10px;z-index:6;background:#2f80ed;color:#fff;font:700 13px/1.6 system-ui,sans-serif;padding:2px 12px;border-radius:999px;pointer-events:none}@keyframes callPulse{50%{outline-color:#9cc3ff}}.call-btn{position:fixed;z-index:80;display:none;width:36px;height:36px;font:600 17px/36px system-ui,sans-serif;text-align:center;border:none;border-radius:50%;padding:0;background:#2f80ed;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}.call-btn.sent{background:#1f9d55}.call-pick{outline:2px dashed #2f80ed!important;outline-offset:4px;border-radius:12px}';
   document.documentElement.appendChild(st);
   let callT = null;
   function flashCall(el){ document.querySelectorAll('.call-here').forEach(x => x.classList.remove('call-here')); el.classList.add('call-here'); clearTimeout(callT); callT = setTimeout(() => el.classList.remove('call-here'), 6000); }
@@ -151,15 +151,18 @@
   new MutationObserver(gateUpdate).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   /* учитель: кнопка «Позвать сюда» у задания под мышкой */
   if (T) addEventListener('DOMContentLoaded', () => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'call-btn'; b.textContent = '📍 Позвать сюда'; document.documentElement.appendChild(b);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'call-btn'; b.textContent = '📍'; b.title = 'Позвать ученика сюда'; document.documentElement.appendChild(b);
     let cur = null, hideT = null;
-    const place = el => { const r = el.getBoundingClientRect(); b.style.display = 'block'; b.style.top = Math.max(4, r.top + 6) + 'px'; b.style.left = Math.min(innerWidth - b.offsetWidth - 8, r.right - b.offsetWidth - 40) + 'px'; };
+    const place = el => { const r = el.getBoundingClientRect(); const sec = el.closest('section.part') || el; const c = sec.getBoundingClientRect(); b.style.display = 'block'; const w = b.offsetWidth || 36;
+      let left, top = Math.max(4, r.top + 4);
+      if (c.left >= w + 14) left = c.left - w - 10; else if (innerWidth - c.right >= w + 14) left = c.right + 10; else { left = Math.max(4, r.left); top = Math.max(4, r.top - w - 6); }
+      b.style.top = top + 'px'; b.style.left = left + 'px'; };
     document.addEventListener('mousemove', e => { if (e.target === b) return; const t = e.target instanceof Element ? e.target.closest('.q,.nb,.wck,.ui-card,.part-head') : null;
-      if (t && !t.closest('#dwBar,.progress,nav.chips,.tk-hidden')) { clearTimeout(hideT); if (cur !== t) { if (cur) cur.classList.remove('call-pick'); cur = t; b.classList.remove('sent'); b.textContent = '📍 Позвать сюда'; } place(t); }
+      if (t && !t.closest('#dwBar,.progress,nav.chips,.tk-hidden')) { clearTimeout(hideT); if (cur !== t) { if (cur) cur.classList.remove('call-pick'); cur = t; b.classList.remove('sent'); b.textContent = '📍'; } place(t); }
       else { clearTimeout(hideT); hideT = setTimeout(() => { b.style.display = 'none'; if (cur) cur.classList.remove('call-pick'); cur = null; }, 700); } }, { passive: true });
     b.addEventListener('mouseenter', () => { clearTimeout(hideT); if (cur) cur.classList.add('call-pick'); });
     b.addEventListener('mouseleave', () => { if (cur) cur.classList.remove('call-pick'); });
-    b.addEventListener('click', e => { e.stopPropagation(); if (!cur) return; const p = pathOf(cur); if (p == null) return; send({ k: 'goto', p }); b.classList.add('sent'); b.textContent = '✓ Позвала'; });
+    b.addEventListener('click', e => { e.stopPropagation(); if (!cur) return; const p = pathOf(cur); if (p == null) return; send({ k: 'goto', p }); b.classList.add('sent'); b.textContent = '✓'; });
     addEventListener('scroll', () => { if (cur && b.style.display === 'block') place(cur); }, { passive: true });
   });
   /* линии рисунка: база не хранит массив внутри массива, поэтому точки уходят строкой */
