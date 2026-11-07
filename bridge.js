@@ -327,7 +327,7 @@
       const inp = q.querySelector('input[type=text],input:not([type]),textarea');
       if (inp) { const ph = (inp.getAttribute('placeholder') || '').trim(); return ['⌨️', (ph ? ph.replace(/[.…]+$/, '') : 'Напиши ответ') + ' и нажми «Проверить».']; }
       if (q.querySelector('.gp,.wcard,.tok')) return ['👆', 'Нажми на нужное место, потом на ответ.'];
-      return ['👆', 'Нажми на правильный ответ. Проверка сразу.'];
+      return ['👆', 'Нажми на правильный ответ.'];
     }
     function center(){ for (const f of [0.45, 0.35, 0.6, 0.25, 0.75]) { const el = document.elementFromPoint(innerWidth / 2, innerHeight * f); if (!el || el.closest('.guide,.dw-bar,.progress,.vtabs,.dwq')) continue; const s = el.closest('section.part'); if (s) return el; } return null; }
     const howCache = new WeakMap();
