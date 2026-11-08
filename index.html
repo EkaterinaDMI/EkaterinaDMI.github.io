@@ -340,9 +340,15 @@ a.tile.big:active,button.tile.big:active{transform:translate(2px,2px);box-shadow
       const hero='<section class="hero" style="--pc:'+M.color+'"><button type="button" class="pet" id="petBtn" aria-label="Выбрать персонажа"><span>'+esc(M.avatar)+'</span><em>сменить</em></button>'+
         '<div class="hi"><h1>Привет, <span>'+esc(nm)+'</span>!</h1><div class="chips"><span class="lvl">'+lv.ic+' Уровень '+lv.n+' · '+esc(lv.name)+'</span>'+(sk?'<span class="fire">🔥 '+sk+' '+plural(sk,'домашка','домашки','домашек')+' подряд</span>':'')+'</div>'+
         '<div class="xp"><div class="xp-bar" role="progressbar" aria-valuenow="'+lv.pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="До следующего уровня"><i id="xpi"></i></div><div class="xp-t"><span>Очки: <b>'+(st.points||0)+'</b></span><span>'+(lv.next?'До «'+esc(lv.next.name)+'»: <b>'+lv.toNext+'</b>':'Высший уровень!')+'</span></div></div></div></section>';
-      const tLesson=(cur&&!curDone)
+      const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      const offToday=!!(stu.off||{})[dk(new Date())];
+      let nextL=null;for(let i=0;i<21&&!nextL;i++){const d=new Date(Date.now()+i*864e5);const k=dk(d);if((stu.off||{})[k])continue;const t=(stu.extra||{})[k]||(stu.sched||{})[String(d.getDay())];if(t)nextL={d,t,i};}
+      const nextTxt=nextL?'Следующий урок: '+(nextL.i===0?'сегодня':nextL.i===1?'завтра':nextL.d.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}))+(nextL.t&&nextL.t!=='?'?' в '+nextL.t:'')+'.':'';
+      const tLesson=offToday
+        ?'<div class="tile big t-les"><span class="ic">🌴</span><span class="tx"><b>Сегодня урока нет</b><span>'+(nextTxt||'Учитель напишет, когда будет следующий урок.')+'</span></span></div>'
+        :(cur&&!curDone)
         ?'<a class="tile big t-les live" href="index.html?s='+encodeURIComponent(cur.id)+'"><span class="ic">📖</span><span class="tx"><b>Урок готов</b><span>'+esc(short(cur.title))+'</span></span><span class="cta">Начать урок</span></a>'
-        :'<div class="tile big t-les"><img alt="" src="'+(window.IMG?IMG.owlSleep:'')+'"><span class="tx"><b>Урок</b><span>Совушка спит. Новый урок появится здесь, когда учитель его откроет.</span></span></div>';
+        :'<div class="tile big t-les"><img alt="" src="'+(window.IMG?IMG.owlSleep:'')+'"><span class="tx"><b>Урок</b><span>Совушка спит. Новый урок появится здесь, когда учитель его откроет.'+(nextTxt?' '+nextTxt:'')+'</span></span></div>';
       const tHw=hwTop
         ?'<a class="tile big t-hw live" href="index.html?s='+encodeURIComponent(hwTop.id)+'"><span class="ic">📒</span><span class="tx"><b>Домашка ждёт</b><span>'+esc(short(hwTop.title))+'</span></span><span class="cta">Открыть</span></a>'
         :'<a class="tile big t-hw" href="#hw"><span class="ic">📒</span><span class="tx"><b>Домашка</b><span>'+(hwItems.length?'Все домашки отмечены ✅':'Домашек пока нет')+'</span></span><span class="cta q">Все</span></a>';

@@ -107,6 +107,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
 .chip{font-size:.78rem;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--bg);border:1.5px solid var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip.g{background:#DFF5E3;border-color:var(--ok);color:var(--ok)}.chip.r{background:var(--accent-soft);border-color:var(--bad);color:var(--bad)}.chip.y{background:#FFF0B8;border-color:#C98A00;color:#7A5300}
 .tday .ta{display:flex;gap:6px;flex-wrap:wrap}
+.tmv{flex:1 1 100%}.lnk{font:inherit;border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0}
 .sch{display:flex;flex-wrap:wrap;gap:8px}
 .sd{display:flex;align-items:center;gap:6px;border:1.5px solid var(--ink);border-radius:10px;padding:6px 8px;background:var(--surface)}
 .sd input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
@@ -277,29 +278,44 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   /* ---------- сегодня: кто занимается, листы, домашки ---------- */
   const DAYS=[['1','Пн'],['2','Вт'],['3','Ср'],['4','Чт'],['5','Пт'],['6','Сб'],['0','Вс']];
   const schedTxt=s=>{const m=s.sched||{};return DAYS.filter(d=>m[d[0]]).map(d=>d[1]+' '+m[d[0]]).join(', ');};
-  function todayList(){
-    const wd=String(new Date().getDay());const now=Date.now();const out=[];
-    students.forEach(s=>{const t=(s.sched||{})[wd];const fresh=pendingFor(s).some(x=>now-(Date.parse(x.added||'')||0)<36*3600e3);
-      if(t||fresh)out.push({s,t:t||'',fresh});});
+  const dkey=d=>{d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+  function todayList(all){
+    const wd=String(new Date().getDay());const now=Date.now();const k=dkey();const out=[];
+    students.forEach(s=>{const t=(s.extra||{})[k]||(s.sched||{})[wd];const fresh=pendingFor(s).some(x=>now-(Date.parse(x.added||'')||0)<36*3600e3);
+      const off=!!(s.off||{})[k];if((t||fresh)&&(all||!off))out.push({s,t:t||'',fresh,off});});
     return out.sort((a,b)=>(a.t||'99').localeCompare(b.t||'99'));
   }
+  const cleanDates=o=>{const lim=dkey(new Date(Date.now()-30*864e5));const r={};Object.keys(o||{}).forEach(k=>{if(k>=lim)r[k]=o[k];});return r;};
+  async function setOff(s,on,moveTo){const k=dkey();const off=cleanDates(s.off);if(on)off[k]=true;else delete off[k];const patch={off};
+    if(moveTo){const ex=cleanDates(s.extra);ex[moveTo.d]=moveTo.t||'?';patch.extra=ex;}
+    await fdb.collection('students').doc(s.id).update(patch);Object.assign(s,patch);}
   function todayHtml(){
-    const L=todayList();const anySched=students.some(s=>Object.keys(s.sched||{}).length);
+    const L=todayList();const C=todayList(true).filter(x=>x.off);const anySched=students.some(s=>Object.keys(s.sched||{}).length);
     const d=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
     const done=students.filter(s=>hwdone[s.id]);
     return '<div class="row"><button type="button" class="b main libgo" id="libGo">📚 Библиотека листов</button></div>'+'<section class="card tday"><div class="row"><h2 style="flex:1">Сегодня, '+esc(d)+'</h2><span class="muted">'+(L.length?L.length+' '+(L.length===1?'ученик':L.length<5?'ученика':'учеников'):'')+'</span></div>'+
       (L.length?'<div class="tl">'+L.map(x=>{const s=x.s;const cur=sheets.find(z=>z.id===s.current);const P=pendingFor(s);
         return '<div class="tr" data-sid="'+s.id+'"><span class="tm">'+esc(x.t||'—')+'</span><span class="av">'+esc(s.avatar||'🙂')+'</span><div class="ti"><b>'+esc(s.name)+'</b> <span class="muted">'+esc(s.grade||'')+'</span>'+
           '<div class="tc">'+(P.length?'<span class="chip y">Новый лист от Claude</span>':cur?'<span class="chip">Лист: '+esc(short(cur.title))+'</span>':'<span class="chip r">Листа нет</span>')+'<span class="chip hwst">ДЗ: …</span><span class="chip lres" hidden></span></div></div>'+
-          '<div class="ta">'+(P.length?'<button type="button" class="b hot" data-tadd="'+s.id+'">Добавить лист</button>':cur?'<a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Урок</a>':'')+'<button type="button" class="b quiet" data-topen="'+s.id+'">Карточка</button></div></div>';}).join('')+'</div>'
-        :'<p class="muted">'+(anySched?'Сегодня уроков по расписанию нет.':'Отметь дни и время уроков в настройках учеников (кнопка «Настройки» в карточке), и здесь каждое утро будет список на сегодня. Пока здесь появляются ученики, для которых Claude выложил новый лист.')+'</p>')+
+          '<div class="ta">'+(P.length?'<button type="button" class="b hot" data-tadd="'+s.id+'">Добавить лист</button>':cur?'<a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Урок</a>':'')+'<button type="button" class="b quiet" data-topen="'+s.id+'">Карточка</button><button type="button" class="b quiet" data-toff="'+s.id+'">Отменить</button><button type="button" class="b quiet" data-tmove="'+s.id+'">Перенести</button></div><div class="tmv" hidden></div></div>';}).join('')+'</div>'+(L.length>1?'<div class="row"><button type="button" class="b quiet" id="dayOff">🌴 Сегодня выходной: отменить все уроки</button></div>':'')
+        :'<p class="muted">'+(C.length?'Все уроки на сегодня отменены. Отдыхай!':anySched?'Сегодня уроков по расписанию нет.':'Отметь дни и время уроков в настройках учеников (кнопка «Настройки» в карточке), и здесь каждое утро будет список на сегодня. Пока здесь появляются ученики, для которых Claude выложил новый лист.')+'</p>')+
+      (C.length?'<div class="muted toffl"><b style="color:var(--ink)">Отменены сегодня:</b> '+C.map(x=>esc(x.s.name)+' <button type="button" class="lnk" data-ton="'+x.s.id+'">вернуть</button>').join(', ')+'</div>':'')+
       '<div class="row"><button type="button" class="b hot" id="dayBtn">📋 Итоги дня для Claude</button><span class="muted">Копирует отчёты всех сегодняшних уроков сразу.</span></div><pre class="res" id="dayOut" hidden></pre>'+
       (done.length?'<div class="muted"><b style="color:var(--ink)">Домашки сданы:</b> '+done.map(s=>esc(s.name)+' ('+esc(hwWhen(hwdone[s.id].at))+')').join(', ')+'</div>':'')+
     '</section>';
   }
   async function fillToday(){
     document.querySelectorAll('.tday [data-topen]').forEach(b=>b.onclick=()=>showStudent(b.dataset.topen));
-    $('#dayBtn').onclick=e=>dayReport(e.currentTarget);$('#libGo').onclick=()=>showLib(null);
+    $('#dayBtn').onclick=e=>dayReport(e.currentTarget);
+    const sById=id=>students.find(x=>x.id===id);
+    const run=async(f,msg)=>{try{await f();toast(msg);showList();}catch(e){toast('Не сохранилось: '+(e.message||e));}};
+    document.querySelectorAll('.tday [data-toff]').forEach(b=>b.onclick=()=>{const s=sById(b.dataset.toff);run(()=>setOff(s,true),'Урок у ученика '+s.name+' отменён на сегодня');});
+    document.querySelectorAll('.tday [data-ton]').forEach(b=>b.onclick=()=>{const s=sById(b.dataset.ton);run(()=>setOff(s,false),'Урок у ученика '+s.name+' вернулся в расписание');});
+    const dOff=$('#dayOff');if(dOff)dOff.onclick=()=>run(()=>Promise.all(todayList().map(x=>setOff(x.s,true))),'Все уроки на сегодня отменены. Хорошего выходного!');
+    document.querySelectorAll('.tday [data-tmove]').forEach(b=>b.onclick=()=>{const s=sById(b.dataset.tmove);const box=b.closest('.tr').querySelector('.tmv');box.hidden=!box.hidden;
+      const tm=new Date(Date.now()+864e5);box.innerHTML='<div class="row"><label class="f">На какой день<input type="date" class="mvd" value="'+dkey(tm)+'" min="'+dkey(tm)+'"></label><label class="f">Время<input type="time" class="mvt" step="300" value="'+esc((s.sched||{})[String(new Date().getDay())]||'')+'"></label><button type="button" class="b main mvgo">Перенести</button></div>';
+      box.querySelector('.mvgo').onclick=()=>{const d=box.querySelector('.mvd').value,t=box.querySelector('.mvt').value;if(!d){toast('Выбери день');return;}
+        run(()=>setOff(s,true,{d,t}),'Урок у ученика '+s.name+' перенесён на '+new Date(d+'T12:00').toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})+(t?' в '+t:''));};});$('#libGo').onclick=()=>showLib(null);
     document.querySelectorAll('.tday [data-tadd]').forEach(b=>b.onclick=async()=>{const s=students.find(x=>x.id===b.dataset.tadd);const it=pendingFor(s)[0];b.textContent='Добавляю…';
       try{await addFromInbox(it,s);toast('Лист добавлен, это урок сегодня у ученика '+s.name);load();}catch(e){b.textContent='Добавить лист';toast('Не получилось: '+(e.message||e));}});
     for(const row of document.querySelectorAll('.tday .tr')){const sid=row.dataset.sid;
