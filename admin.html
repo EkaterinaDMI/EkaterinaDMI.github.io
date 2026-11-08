@@ -361,6 +361,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
       map.set(key,{key,kind:'sheet',id:sh.id,ids:[sh.id],title:short(sh.title),full:sh.title,note:it.note||'',who:who?[who]:[],grade:(st&&gradeOf(st.grade))||gradeOf(it.note)||'',date:sh.createdAt,topics:sh.topics||null,src:sh.src,student:sh.student});});
     inbox.forEach(x=>{if(map.has(x.file))return;const st=students.find(s=>s.key===x.key);
       map.set(x.file,{key:x.file,kind:'inbox',file:x.file,ids:[],title:short(x.title),full:x.title,note:x.note||'',who:x.student?[x.student]:[],grade:(st&&gradeOf(st.grade))||gradeOf(x.note)||'',date:x.added,topics:null,src:x.file,student:x.student});});
+    (lib.extra||[]).forEach(x=>{if(map.has(x.file))return;map.set(x.file,{key:x.file,kind:'inbox',file:x.file,ids:[],title:x.title,full:'Ученик · Урок · '+x.title,note:x.note||'',who:[],grade:x.grade||'',date:x.added,topics:null,src:x.file,student:''});});
     const F=lib.folders;
     return [...map.values()].map(it=>{let t=it.topics&&it.topics.length?it.topics:F.filter(f=>f.kw&&new RegExp(f.kw,'i').test(it.title+' '+it.note)).map(f=>f.id);if(!t.length)t=['other'];it.t=t;return it;})
       .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
@@ -379,7 +380,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     }else{
       const L=all.filter(i=>(!libFolder||i.t.includes(libFolder))&&filt(i));
       body=L.length?'<div class="lbl">'+L.map(it=>'<div class="lb" data-k="'+esc(it.key)+'"><div class="lbt"><b>'+esc(it.title)+'</b>'+(it.grade?'<span class="pill">'+it.grade+' кл.</span>':'')+'</div>'+
-        (it.note?'<div class="muted">'+esc(it.note)+'</div>':'')+'<div class="muted">Был у: '+esc(it.who.join(', ')||'—')+' · '+K.fmtDate(it.date)+'</div>'+
+        (it.note?'<div class="muted">'+esc(it.note)+'</div>':'')+'<div class="muted">'+(it.who.length?'Был у: '+esc(it.who.join(', '))+' · ':'Из библиотеки · ')+K.fmtDate(it.date)+'</div>'+
         '<div class="tch">'+it.t.map(id=>{const f=F.find(z=>z.id===id);return f?'<span class="chip">'+f.ic+' '+esc(f.name)+'</span>':'';}).join('')+'</div>'+
         '<div class="row"><button type="button" class="b" data-a="view">Посмотреть</button><button type="button" class="b hot" data-a="give">Дать ученику</button><button type="button" class="b quiet" data-a="fold">Папки</button></div><div class="lbx" hidden></div></div>').join('')+'</div>'
         :'<p class="muted">Здесь пока нет листов'+(libGrade||libQ?' с такими условиями':'')+'.</p>';
