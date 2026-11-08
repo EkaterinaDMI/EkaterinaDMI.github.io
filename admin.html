@@ -281,7 +281,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   const dkey=d=>{d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
   function todayList(all){
     const wd=String(new Date().getDay());const now=Date.now();const k=dkey();const out=[];
-    students.forEach(s=>{const t=(s.extra||{})[k]||(s.sched||{})[wd];const fresh=pendingFor(s).some(x=>now-(Date.parse(x.added||'')||0)<36*3600e3);
+    students.forEach(s=>{const t=(s.extra||{})[k]||(s.sched||{})[wd];const fresh=pendingFor(s).some(x=>x.date?x.date===k:(!Object.keys(s.sched||{}).length&&now-(Date.parse(x.added||'')||0)<36*3600e3));
       const off=!!(s.off||{})[k];if((t||fresh)&&(all||!off))out.push({s,t:t||'',fresh,off});});
     return out.sort((a,b)=>(a.t||'99').localeCompare(b.t||'99'));
   }
@@ -289,6 +289,12 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   async function setOff(s,on,moveTo){const k=dkey();const off=cleanDates(s.off);if(on)off[k]=true;else delete off[k];const patch={off};
     if(moveTo){const ex=cleanDates(s.extra);ex[moveTo.d]=moveTo.t||'?';patch.extra=ex;}
     await fdb.collection('students').doc(s.id).update(patch);Object.assign(s,patch);}
+  function tomorrowHtml(){
+    const d=new Date(Date.now()+864e5);const k=dkey(d);const wd=String(d.getDay());
+    const L=students.map(s=>{const t=(s.extra||{})[k]||(s.sched||{})[wd];const p=pendingFor(s).some(x=>x.date===k);return (t||p)&&!(s.off||{})[k]?{s,t:t||'',p}:null;}).filter(Boolean).sort((a,b)=>(a.t||'99').localeCompare(b.t||'99'));
+    if(!L.length)return '';
+    return '<div class="muted"><b style="color:var(--ink)">Завтра:</b> '+L.map(x=>esc(x.s.name)+(x.t&&x.t!=='?'?' '+esc(x.t):'')+(x.p?' (лист готов)':'')).join(', ')+'</div>';
+  }
   function todayHtml(){
     const L=todayList();const C=todayList(true).filter(x=>x.off);const anySched=students.some(s=>Object.keys(s.sched||{}).length);
     const d=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
@@ -299,6 +305,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
           '<div class="tc">'+(P.length?'<span class="chip y">Новый лист от Claude</span>':cur?'<span class="chip">Лист: '+esc(short(cur.title))+'</span>':'<span class="chip r">Листа нет</span>')+'<span class="chip hwst">ДЗ: …</span><span class="chip lres" hidden></span></div></div>'+
           '<div class="ta">'+(P.length?'<button type="button" class="b hot" data-tadd="'+s.id+'">Добавить лист</button>':cur?'<a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Урок</a>':'')+'<button type="button" class="b quiet" data-topen="'+s.id+'">Карточка</button><button type="button" class="b quiet" data-toff="'+s.id+'">Отменить</button><button type="button" class="b quiet" data-tmove="'+s.id+'">Перенести</button></div><div class="tmv" hidden></div></div>';}).join('')+'</div>'+(L.length>1?'<div class="row"><button type="button" class="b quiet" id="dayOff">🌴 Сегодня выходной: отменить все уроки</button></div>':'')
         :'<p class="muted">'+(C.length?'Все уроки на сегодня отменены. Отдыхай!':anySched?'Сегодня уроков по расписанию нет.':'Отметь дни и время уроков в настройках учеников (кнопка «Настройки» в карточке), и здесь каждое утро будет список на сегодня. Пока здесь появляются ученики, для которых Claude выложил новый лист.')+'</p>')+
+      tomorrowHtml()+
       (C.length?'<div class="muted toffl"><b style="color:var(--ink)">Отменены сегодня:</b> '+C.map(x=>esc(x.s.name)+' <button type="button" class="lnk" data-ton="'+x.s.id+'">вернуть</button>').join(', ')+'</div>':'')+
       '<div class="row"><button type="button" class="b hot" id="dayBtn">📋 Итоги дня для Claude</button><span class="muted">Копирует отчёты всех сегодняшних уроков сразу.</span></div><pre class="res" id="dayOut" hidden></pre>'+
       (done.length?'<div class="muted"><b style="color:var(--ink)">Домашки сданы:</b> '+done.map(s=>esc(s.name)+' ('+esc(hwWhen(hwdone[s.id].at))+')').join(', ')+'</div>':'')+
