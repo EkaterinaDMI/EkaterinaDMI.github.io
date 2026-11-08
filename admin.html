@@ -97,7 +97,8 @@ h1{font-size:1.7rem}
 input[type=text],input[type=date],input[type=number],select{background:var(--surface);border:1.5px solid var(--ink);color:var(--ink);border-radius:10px;padding:8px 10px;width:100%;min-height:40px;font:inherit}
 @media (max-width:520px){.brand .ow{display:none}h1{font-size:1.4rem}}
 .tday{border:2.5px solid var(--ink);background:#FFF4CC}
-.tl{display:grid;gap:8px}
+.tl{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+.tday{grid-template-columns:minmax(0,1fr)}.tday>*{min-width:0}
 .tday .tr{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:10px 12px}
 .tday .tm{font:italic 700 1.2rem/1 var(--f-d);min-width:56px}
 .tday .av{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-size:1.5rem;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;flex:none}
@@ -110,6 +111,25 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
 .sd{display:flex;align-items:center;gap:6px;border:1.5px solid var(--ink);border-radius:10px;padding:6px 8px;background:var(--surface)}
 .sd input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
 .sd input[type=time]{border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;background:var(--bg);width:96px}
+
+.libgo{font-size:1rem;padding:10px 18px}
+.gch{display:flex;flex-wrap:wrap;gap:6px}
+.chipb{font:inherit;font-size:.82rem;font-weight:700;border:1.5px solid var(--ink);border-radius:999px;padding:5px 12px;background:var(--surface);cursor:pointer}
+.chipb.on{background:var(--ink);color:var(--bg)}
+.fold{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:22px 12px;padding-top:12px}
+.fd{position:relative;display:grid;gap:4px;align-content:start;text-align:left;font:inherit;color:inherit;cursor:pointer;background:var(--surface);border:2px solid var(--ink);border-radius:0 16px 16px 16px;padding:18px 14px 14px;box-shadow:4px 4px 0 var(--ink);min-height:120px}
+.fd::before{content:"";position:absolute;left:-2px;top:-12px;width:46%;height:12px;background:inherit;border:2px solid var(--ink);border-bottom:0;border-radius:8px 8px 0 0}
+.fd:hover{background:#FFF4CC}
+.fd.empty{opacity:.55}
+.fi{font-size:1.7rem;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.fn{font-weight:800;line-height:1.25}
+.fc{font-size:.8rem;color:var(--muted)}
+.lbl{display:grid;gap:10px}
+.lb{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:12px 14px;display:grid;gap:6px}
+.lbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.lbt b{font-size:1.02rem}
+.tch{display:flex;flex-wrap:wrap;gap:6px}
+.lbx{border-top:1.5px dashed var(--line);padding-top:10px;display:grid;gap:8px}
+.fchk{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
 .mp{display:grid;gap:6px}
 .mpr{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}
 .mst{font:inherit;font-size:.8rem;font-weight:700;border-radius:999px;padding:4px 12px;border:1.5px solid var(--ink);cursor:pointer;min-width:96px;background:var(--surface)}
@@ -153,13 +173,12 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
   async function load(){
     const [a,b]=await Promise.all([fdb.collection('students').get(),fdb.collection('sheets').orderBy('createdAt','desc').get()]);
     students=a.docs.map(d=>Object.assign({id:d.id},d.data())).sort((x,y)=>String(x.name).localeCompare(String(y.name),'ru'));
-    sheets=b.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),sid:d.get('sid')||null,src:d.get('src')||null,createdAt:d.get('createdAt')}));
+    sheets=b.docs.map(d=>({id:d.id,title:d.get('title'),student:d.get('student'),sid:d.get('sid')||null,src:d.get('src')||null,createdAt:d.get('createdAt'),topics:d.get('topics')||null}));
     try{const r=await fetch('inbox/list.json?'+Date.now(),{cache:'no-store'});inbox=r.ok?(await r.json()):[];}catch(e){inbox=[];}
     try{const r=await fetch('inbox/students.json?'+Date.now(),{cache:'no-store'});roster=r.ok?(await r.json()):[];}catch(e){roster=[];}
     try{const r=await fetch('inbox/program.json?'+Date.now(),{cache:'no-store'});program=r.ok?(await r.json()):null;}catch(e){program=null;}
     hwdone={};await Promise.all(students.filter(s=>s.current).map(async s=>{try{const d=await fdb.collection('sheets').doc(s.current).collection('presence').doc('hw').get();if(d.exists&&d.get('done'))hwdone[s.id]=d.data();}catch(e){}}));
-    watchHw();
-    open?showStudent(open):showList();
+    watchHw(); if(open)showStudent(open);else if(/^#lib/.test(location.hash))showLib(location.hash.split('/')[1]||null);else showList();
   }
   let hwdone={},hwWatch=[];
   const hwWhen=t=>new Date(t).toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
@@ -268,17 +287,19 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     const L=todayList();const anySched=students.some(s=>Object.keys(s.sched||{}).length);
     const d=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
     const done=students.filter(s=>hwdone[s.id]);
-    return '<section class="card tday"><div class="row"><h2 style="flex:1">Сегодня, '+esc(d)+'</h2><span class="muted">'+(L.length?L.length+' '+(L.length===1?'ученик':L.length<5?'ученика':'учеников'):'')+'</span></div>'+
+    return '<div class="row"><button type="button" class="b main libgo" id="libGo">📚 Библиотека листов</button></div>'+'<section class="card tday"><div class="row"><h2 style="flex:1">Сегодня, '+esc(d)+'</h2><span class="muted">'+(L.length?L.length+' '+(L.length===1?'ученик':L.length<5?'ученика':'учеников'):'')+'</span></div>'+
       (L.length?'<div class="tl">'+L.map(x=>{const s=x.s;const cur=sheets.find(z=>z.id===s.current);const P=pendingFor(s);
         return '<div class="tr" data-sid="'+s.id+'"><span class="tm">'+esc(x.t||'—')+'</span><span class="av">'+esc(s.avatar||'🙂')+'</span><div class="ti"><b>'+esc(s.name)+'</b> <span class="muted">'+esc(s.grade||'')+'</span>'+
           '<div class="tc">'+(P.length?'<span class="chip y">Новый лист от Claude</span>':cur?'<span class="chip">Лист: '+esc(short(cur.title))+'</span>':'<span class="chip r">Листа нет</span>')+'<span class="chip hwst">ДЗ: …</span><span class="chip lres" hidden></span></div></div>'+
           '<div class="ta">'+(P.length?'<button type="button" class="b hot" data-tadd="'+s.id+'">Добавить лист</button>':cur?'<a class="b hot" href="'+esc(tchLink(cur.id))+'" target="_blank" rel="noopener">▶ Урок</a>':'')+'<button type="button" class="b quiet" data-topen="'+s.id+'">Карточка</button></div></div>';}).join('')+'</div>'
         :'<p class="muted">'+(anySched?'Сегодня уроков по расписанию нет.':'Отметь дни и время уроков в настройках учеников (кнопка «Настройки» в карточке), и здесь каждое утро будет список на сегодня. Пока здесь появляются ученики, для которых Claude выложил новый лист.')+'</p>')+
+      '<div class="row"><button type="button" class="b hot" id="dayBtn">📋 Итоги дня для Claude</button><span class="muted">Копирует отчёты всех сегодняшних уроков сразу.</span></div><pre class="res" id="dayOut" hidden></pre>'+
       (done.length?'<div class="muted"><b style="color:var(--ink)">Домашки сданы:</b> '+done.map(s=>esc(s.name)+' ('+esc(hwWhen(hwdone[s.id].at))+')').join(', ')+'</div>':'')+
     '</section>';
   }
   async function fillToday(){
     document.querySelectorAll('.tday [data-topen]').forEach(b=>b.onclick=()=>showStudent(b.dataset.topen));
+    $('#dayBtn').onclick=e=>dayReport(e.currentTarget);$('#libGo').onclick=()=>showLib(null);
     document.querySelectorAll('.tday [data-tadd]').forEach(b=>b.onclick=async()=>{const s=students.find(x=>x.id===b.dataset.tadd);const it=pendingFor(s)[0];b.textContent='Добавляю…';
       try{await addFromInbox(it,s);toast('Лист добавлен, это урок сегодня у ученика '+s.name);load();}catch(e){b.textContent='Добавить лист';toast('Не получилось: '+(e.message||e));}});
     for(const row of document.querySelectorAll('.tday .tr')){const sid=row.dataset.sid;
@@ -308,6 +329,91 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
       b.className='mst '+nx;b.textContent=MST[nx];
       try{await fdb.collection('students').doc(s.id).update({map:M.m});s.map=Object.assign({},M.m);}catch(e){toast('Не сохранилось: '+(e.message||e));}});
     const d=box.closest('details');if(d)d.ontoggle=()=>{window._mapOpen=d.open;};}
+  /* ---------- итоги дня для Claude ---------- */
+  async function dayReport(btn){
+    const out=$('#dayOut');btn.disabled=true;btn.textContent='Собираю итоги…';
+    const today=new Date();
+    const sameDay=d=>{const x=new Date(d);return x.getFullYear()===today.getFullYear()&&x.getMonth()===today.getMonth()&&x.getDate()===today.getDate();};
+    const want=new Map();
+    await Promise.all(students.map(async s=>{try{const q=await fdb.collection('students').doc(s.id).collection('lessons').get();
+      q.docs.forEach(d=>{const l=d.data();if(!d.id.startsWith('m-')&&l.date&&sameDay(l.date))want.set(d.id,s);});}catch(e){}}));
+    todayList().forEach(x=>{if(x.s.current&&!want.has(x.s.current))want.set(x.s.current,x.s);});
+    const parts=[];
+    for(const [id,s] of want){const sh=sheets.find(z=>z.id===id);if(!sh)continue;
+      try{const t=await summary(sh,s);if(/Результатов пока нет/.test(t))continue;
+        const m=t.match(/\nУрок (\d{4}-\d\d-\d\d) (\d\d:\d\d)/);if(!m||!sameDay(m[1]+'T'+m[2]+':00Z'))continue;parts.push('Отчёт для Claude. '+t);}catch(e){}}
+    btn.disabled=false;btn.textContent='📋 Итоги дня для Claude';
+    if(!parts.length){out.hidden=false;out.textContent='За сегодня пока нет результатов уроков.';return;}
+    const text='Итоги дня, '+today.toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+'. Уроков: '+parts.length+'.\n\n'+parts.join('\n\n==========\n\n');
+    out.hidden=false;out.textContent=text;copy(text,'Итоги дня скопированы ('+parts.length+'), вставь их Claude');
+  }
+
+  /* ---------- библиотека листов ---------- */
+  let lib=null,libFolder=null,libQ='',libGrade='';
+  async function loadLib(){if(lib)return lib;try{const r=await fetch('inbox/library.json?'+Date.now(),{cache:'no-store'});lib=r.ok?await r.json():{folders:[]};}catch(e){lib={folders:[]};}return lib;}
+  const gradeOf=t=>{const m=String(t||'').match(/(\d)\s*кл/);return m?m[1]:'';};
+  function libItems(){
+    const stuBy=id=>students.find(s=>s.id===id);const inb={};inbox.forEach(x=>inb[x.file]=x);
+    const map=new Map();
+    sheets.forEach(sh=>{const st=stuBy(sh.sid);const it=inb[sh.src]||{};const key=sh.src||('t:'+short(sh.title).toLowerCase());
+      const cur=map.get(key);const who=st?st.name:(sh.student||'');
+      if(cur){if(who&&!cur.who.includes(who))cur.who.push(who);if(!cur.topics&&sh.topics)cur.topics=sh.topics;cur.ids.push(sh.id);return;}
+      map.set(key,{key,kind:'sheet',id:sh.id,ids:[sh.id],title:short(sh.title),full:sh.title,note:it.note||'',who:who?[who]:[],grade:(st&&gradeOf(st.grade))||gradeOf(it.note)||'',date:sh.createdAt,topics:sh.topics||null,src:sh.src,student:sh.student});});
+    inbox.forEach(x=>{if(map.has(x.file))return;const st=students.find(s=>s.key===x.key);
+      map.set(x.file,{key:x.file,kind:'inbox',file:x.file,ids:[],title:short(x.title),full:x.title,note:x.note||'',who:x.student?[x.student]:[],grade:(st&&gradeOf(st.grade))||gradeOf(x.note)||'',date:x.added,topics:null,src:x.file,student:x.student});});
+    const F=lib.folders;
+    return [...map.values()].map(it=>{let t=it.topics&&it.topics.length?it.topics:F.filter(f=>f.kw&&new RegExp(f.kw,'i').test(it.title+' '+it.note)).map(f=>f.id);if(!t.length)t=['other'];it.t=t;return it;})
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  }
+  async function showLib(folder){
+    await loadLib();open=null;libFolder=folder||null;history.replaceState(null,'',location.pathname+'#lib'+(libFolder?'/'+libFolder:''));
+    const all=libItems();const F=lib.folders;
+    const filt=it=>(!libGrade||it.grade===libGrade)&&(!libQ||(it.title+' '+it.note+' '+it.who.join(' ')).toLowerCase().includes(libQ.toLowerCase()));
+    const grades=[...new Set(all.map(i=>i.grade).filter(Boolean))].sort();
+    const head='<div class="row"><button type="button" class="b quiet" id="lbBack">'+(libFolder?'← Все папки':'← Все ученики')+'</button><span class="sp"></span></div>'+
+      '<section class="card"><div class="row"><h2 style="flex:1">'+(libFolder?esc((F.find(f=>f.id===libFolder)||{}).ic||'')+' '+esc((F.find(f=>f.id===libFolder)||{}).name||''):'📚 Библиотека листов')+'</h2><span class="muted">'+(libFolder?all.filter(i=>i.t.includes(libFolder)).length:all.length)+' всего</span></div>'+
+      '<div class="row"><input type="text" id="lbQ" placeholder="Поиск: тема, ученик, упражнение" value="'+esc(libQ)+'" style="flex:1 1 220px"><div class="gch">'+['',...grades].map(g=>'<button type="button" class="chipb'+(g===libGrade?' on':'')+'" data-g="'+g+'">'+(g?g+' кл.':'Все')+'</button>').join('')+'</div></div></section>';
+    let body='';
+    if(!libFolder&&!libQ){
+      body='<div class="fold">'+F.map(f=>{const n=all.filter(i=>i.t.includes(f.id)&&filt(i)).length;if(!n&&f.id==='other')return '';return '<button type="button" class="fd'+(n?'':' empty')+'" data-f="'+f.id+'"><span class="fi">'+f.ic+'</span><span class="fn">'+esc(f.name)+'</span><span class="fc">'+n+' '+(n%10===1&&n%100!==11?'лист':n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'листа':'листов')+'</span></button>';}).join('')+'</div>';
+    }else{
+      const L=all.filter(i=>(!libFolder||i.t.includes(libFolder))&&filt(i));
+      body=L.length?'<div class="lbl">'+L.map(it=>'<div class="lb" data-k="'+esc(it.key)+'"><div class="lbt"><b>'+esc(it.title)+'</b>'+(it.grade?'<span class="pill">'+it.grade+' кл.</span>':'')+'</div>'+
+        (it.note?'<div class="muted">'+esc(it.note)+'</div>':'')+'<div class="muted">Был у: '+esc(it.who.join(', ')||'—')+' · '+K.fmtDate(it.date)+'</div>'+
+        '<div class="tch">'+it.t.map(id=>{const f=F.find(z=>z.id===id);return f?'<span class="chip">'+f.ic+' '+esc(f.name)+'</span>':'';}).join('')+'</div>'+
+        '<div class="row"><button type="button" class="b" data-a="view">Посмотреть</button><button type="button" class="b hot" data-a="give">Дать ученику</button><button type="button" class="b quiet" data-a="fold">Папки</button></div><div class="lbx" hidden></div></div>').join('')+'</div>'
+        :'<p class="muted">Здесь пока нет листов'+(libGrade||libQ?' с такими условиями':'')+'.</p>';
+    }
+    $('#app').innerHTML=head+body;
+    $('#lbBack').onclick=()=>libFolder?showLib(null):showList();
+    const q=$('#lbQ');q.oninput=()=>{libQ=q.value;clearTimeout(q._t);q._t=setTimeout(()=>{showLib(libFolder).then(()=>{const z=$('#lbQ');z.focus();z.setSelectionRange(z.value.length,z.value.length);});},350);};
+    document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{libGrade=b.dataset.g;showLib(libFolder);});
+    document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>showLib(b.dataset.f));
+    document.querySelectorAll('.lb').forEach(c=>{const it=all.find(i=>i.key===c.dataset.k);const box=c.querySelector('.lbx');
+      c.querySelector('[data-a=view]').onclick=async()=>{const w=window.open('','_blank');try{const h=await libHtml(it);const u=URL.createObjectURL(new Blob([h],{type:'text/html'}));if(w)w.location=u;else location.href=u;}catch(e){if(w)w.close();toast('Не открылось: '+(e.message||e));}};
+      c.querySelector('[data-a=give]').onclick=()=>{box.hidden=false;box.innerHTML='<div class="row"><label class="f">Кому<select id="gv">'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name)+(s.grade?' · '+esc(s.grade):'')+'</option>').join('')+'</select></label></div><label class="sw"><input type="checkbox" id="gvCur" checked> Сделать уроком сегодня</label><div class="row"><button type="button" class="b main" id="gvGo">Добавить лист</button><span class="muted" id="gvMsg"></span></div><p class="muted">Имя прошлого ученика в листе заменится на новое. Задания останутся те же.</p>';
+        box.querySelector('#gvGo').onclick=async()=>{const s=students.find(x=>x.id===box.querySelector('#gv').value);const m=box.querySelector('#gvMsg');m.textContent='Добавляю…';
+          try{let h=await libHtml(it);h=rename(h,it,s);const id=await addFromHtml(h,s,it.src||null,box.querySelector('#gvCur').checked);
+            if(it.t&&it.topics)await fdb.collection('sheets').doc(id).update({topics:it.topics}).catch(()=>{});
+            toast('Лист добавлен ученику '+s.name);await load();}catch(e){m.textContent='Не получилось: '+(e.message||e);}};};
+      c.querySelector('[data-a=fold]').onclick=()=>{box.hidden=false;box.innerHTML='<p class="muted">В каких папках лежит этот лист:</p><div class="fchk">'+F.filter(f=>f.id!=='other').map(f=>'<label class="sw"><input type="checkbox" value="'+f.id+'"'+(it.t.includes(f.id)?' checked':'')+'> '+f.ic+' '+esc(f.name)+'</label>').join('')+'</div><div class="row"><button type="button" class="b main" id="fdGo">Сохранить</button><span class="muted" id="fdMsg"></span></div>';
+        box.querySelector('#fdGo').onclick=async()=>{const t=[...box.querySelectorAll('.fchk input:checked')].map(x=>x.value);const m=box.querySelector('#fdMsg');
+          if(!it.ids.length){m.textContent='Этот лист ещё не добавлен ни одному ученику. Папки можно менять после того, как дашь его ученику.';return;}
+          try{await Promise.all(it.ids.map(id=>fdb.collection('sheets').doc(id).update({topics:t})));sheets.forEach(sh=>{if(it.ids.includes(sh.id))sh.topics=t;});toast('Папки сохранены');showLib(libFolder);}catch(e){m.textContent='Не сохранилось: '+(e.message||e);}};};
+    });
+  }
+  async function libHtml(it){
+    if(it.kind==='inbox'){const r=await fetch('inbox/'+encodeURIComponent(it.file)+'?'+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('Файл не найден');return r.text();}
+    const d=await fdb.collection('sheets').doc(it.id).get();if(!d.exists)throw new Error('Лист не найден');return d.get('html');
+  }
+  function rename(h,it,s){
+    const old=String((it.full||'').split('·')[0]||it.student||'').trim();
+    const dt=new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+    h=h.replace(/<title>([^<]*)<\/title>/i,(m,t)=>{const p=t.split('·').map(x=>x.trim());if(p.length>=3)return '<title>'+s.name+' · Урок '+dt+' · '+p.slice(2).join(' · ')+'</title>';return '<title>'+s.name+' · '+t+'</title>';});
+    if(old&&old!==s.name){const re=new RegExp('(^|[^А-Яа-яЁё])'+old.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![А-Яа-яЁё])','g');
+      const i=h.indexOf('</title>');h=h.slice(0,i+8)+h.slice(i+8).replace(re,(m,p)=>p+s.name);}
+    return h;
+  }
   /* ---------- новый ученик / настройки ---------- */
   function editStudent(id){
     const s=id?students.find(x=>x.id===id):{name:'',grade:'',avatar:'🦊',inBoard:true};
