@@ -786,7 +786,7 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 <script>
 document.getElementById('dwEmToggle').addEventListener('click',function(){var p=document.getElementById('dwEms');p.hidden=!p.hidden;this.setAttribute('aria-expanded',p.hidden?'false':'true');this.title=p.hidden?'Ещё':'Свернуть';this.textContent=p.hidden?'···':'×';});
 (function(){
-const reg=[];const $=s=>document.querySelector(s);
+const reg=[];window.__sheet={reg,get ask(){return ask},get update(){return update}};const $=s=>document.querySelector(s);
 function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;}
 function vis(i){return !(i.box&&i.box.closest&&i.box.closest('.tk-hidden'));}
 function update(){const R=reg.filter(vis);const all=R.length,done=R.filter(i=>i.done).length,ok=R.filter(i=>i.ok).length;if(typeof scheduleSave==='function')scheduleSave();if(typeof treeUpdate==='function')treeUpdate(ok,all);if(typeof badgeCheck==='function')badgeCheck();

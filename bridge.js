@@ -538,5 +538,35 @@ html.txed .txed-blk{outline:2px solid #B5532E!important;outline-offset:6px}
       }
     };
   })();
-  addEventListener('load', () => setTimeout(() => API.ready(), 400));
+
+  /* ---------- свои задания учителя (конструктор): видны и учителю, и ученику ---------- */
+  (function(){
+    const shown = {}; let first = true;
+    const css = document.createElement('style');
+    css.textContent = `.mt-ex{margin-top:14px}.mt-ex .ex-head .tag{background:#B5532E;color:#fff}`;
+    document.documentElement.appendChild(css);
+    function drop(id){ const c = shown[id]; if (!c) return; const S = window.__sheet; try { if (S) for (let i = S.reg.length - 1; i >= 0; i--) if (c.contains(S.reg[i].box)) S.reg.splice(i, 1); } catch (e) {} c.remove(); delete shown[id]; try { S && S.update(); } catch (e) {} }
+    function draw(id, d){
+      const S = window.__sheet; if (shown[id] || !S) return; const ask = S.ask;
+      const sec = document.getElementById(d.section) || [...document.querySelectorAll('section.part:not(#hw):not(#errpanel)')].pop(); if (!sec) return;
+      const box = document.createElement('div'); box.className = 'ex mt-ex'; box.dataset.mt = id;
+      const h = document.createElement('div'); h.className = 'ex-head'; h.innerHTML = '<span class="tag">' + (d.kind === 'nb' ? 'В тетрадь' : 'Задание учителя') + '</span><span class="ex-task"></span>'; h.lastChild.textContent = d.title || ''; box.appendChild(h);
+      sec.appendChild(box); shown[id] = box;
+      const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      (d.items || []).forEach(it => { const q = it.q || ''; ask(box, '<div class="drill-word" style="font-weight:400;font-size:1.05rem">' + (d.kind === 'nb' ? esc(q).replace(/\n/g, '<br>') : esc(q)) + '</div>', it.o || [], it.a, esc(it.w || '')); });
+      try { S.update(); } catch (e) {}
+    }
+    window.__mtReady = new Promise(res => {
+      const done = () => { if (first) { first = false; res(); } };
+      setTimeout(done, 3000);
+      try {
+        base.collection('mytasks').onSnapshot(q => {
+          const run = () => { q.docChanges().forEach(ch => { if (ch.type === 'removed') drop(ch.doc.id); });
+            q.docs.map(x => ({ id: x.id, d: x.data() })).sort((a, b) => (a.d.at || 0) - (b.d.at || 0)).forEach(x => draw(x.id, x.d)); done(); };
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(run, 0)); else run();
+        }, () => done());
+      } catch (e) { done(); }
+    });
+  })();
+  addEventListener('load', () => setTimeout(() => Promise.resolve(window.__mtReady).then(() => API.ready()), 400));
 })();
