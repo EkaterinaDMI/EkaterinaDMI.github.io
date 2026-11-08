@@ -327,23 +327,6 @@ body{background:var(--bg);color:var(--ink)}
 @keyframes goRing{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.35)}}
 @keyframes goCard{0%,100%{box-shadow:0 12px 28px rgba(181,83,46,.25)}50%{box-shadow:0 12px 40px rgba(181,83,46,.55),0 0 0 6px rgba(181,83,46,.15)}}
 
-.ov.mt{place-items:start center;padding-top:5vh}.mt .mt-card{max-width:640px;text-align:left;gap:12px}
-.mt-top{display:flex;align-items:center;justify-content:space-between}.mt-top h2{font:500 1.35rem var(--f-d)}
-.mt-top .x{border:0;background:var(--bg);border-radius:50%;width:36px;height:36px;font-size:1rem;cursor:pointer}
-.mt-tabs,.mt-kind{display:flex;gap:6px;flex-wrap:wrap}
-.mt-tabs button,.mt-kind button{font:600 .92rem var(--f);border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:8px 14px;cursor:pointer}
-.mt-tabs button.on,.mt-kind button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.mt-p{display:grid;gap:10px}.mt-p label{display:grid;gap:4px;font-weight:600;font-size:.9rem}
-.mt-p input[type=text],.mt-p input[type=search],.mt-p select,.mt-p textarea{font:inherit;font-weight:400;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--ink);width:100%}
-.mt-p textarea{font-family:ui-monospace,Menlo,monospace;font-size:.95rem;line-height:1.5;resize:vertical}
-.mt-p input:focus,.mt-p textarea:focus,.mt-p select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(181,83,46,.15)}
-.mt-ck{display:flex!important;align-items:center;gap:8px;font-weight:500!important}
-.mt-cnt{font-size:.92rem}.mt-cnt .bad,.mt-msg{color:var(--accent)}.mt-msg{font-size:.92rem}
-.mt-list{display:grid;gap:0;max-height:52vh;overflow:auto}
-.mt-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.mt-row:first-child{border-top:0}
-.mt-row > div:first-child{display:grid;gap:2px}.mt-row .mt-ex{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mt-act{display:flex;gap:6px}.mt-act .tr-b{padding:8px 12px;font-size:.88rem}
-@media (max-width:560px){.mt-row{grid-template-columns:1fr}}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -561,80 +544,6 @@ body{background:var(--bg);color:var(--ink)}
   }
 
 
-  /* ================= КОНСТРУКТОР ЗАДАНИЙ (учитель) ================= */
-  const MT_PAIR={'о':'а','а':'о','е':'и','и':'е','я':'е','ё':'о','ы':'и','у':'ю','ю':'у','э':'е','д':'т','т':'д','б':'п','п':'б','г':'к','к':'г','в':'ф','ф':'в','з':'с','с':'з','ж':'ш','ш':'ж','щ':'ш','ч':'щ','ь':'ъ','ъ':'ь','ц':'с','й':'и'};
-  const mtPl=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<10||h>=20)?b:c;};
-  const MT_NO=v=>/^(—|-|–|ничего|0|)$/i.test(String(v).trim());
-  function mtShuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-  function mtParse(kind,text){
-    const items=[],bad=[];
-    if(kind==='nb'){text.split('\n').map(x=>x.trim()).filter(Boolean).forEach(l=>items.push({q:l,o:['Сделано верно','Есть ошибки'],a:'Сделано верно',w:''}));return {items,bad};}
-    if(kind==='choice'){text.split('\n').map(x=>x.trim()).filter(Boolean).forEach(l=>{let [main,why]=l.split('//');const m=main.split('=');if(m.length<2){bad.push(l);return;}
-        const q=m[0].trim();const opts=m.slice(1).join('=').split('/').map(x=>x.trim()).filter(Boolean);if(opts.length<2){bad.push(l);return;}
-        items.push({q,o:mtShuffle(opts),a:opts[0],w:(why||'').trim()||('Правильно: '+opts[0]+'.')});});return {items,bad};}
-    text.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean).forEach(tok=>{let [main,why]=tok.split('//');main=main.trim();
-      const m=main.match(/\[([^\]]*)\]/);if(!m){bad.push(tok);return;}
-      let opts=m[1].split('/').map(x=>x.trim());let right=opts[0];
-      if(opts.length<2){const r=right.toLowerCase();let d=MT_PAIR[r];
-        if(!d&&r.length===2&&r[0]===r[1])d=r[0];if(!d&&r.length===1&&/[лмнр]/.test(r))d=r+r;
-        if(!d||MT_NO(r)){bad.push(tok);return;}opts=[right,d];}
-      opts=opts.map(o=>MT_NO(o)?'ничего':o);right=opts[0];
-      const word=main.replace(m[0],right==='ничего'?'':right).replace(/\s+/g,' ');
-      items.push({q:main.replace(m[0],'_'),o:mtShuffle(opts),a:right,w:(why||'').trim()||('Правильно: '+word+'.')});});
-    return {items,bad};
-  }
-  async function openBuilder(W){
-    const API=window.__sheetAPI;const base=API&&API.base;if(!base)return;
-    const D=W&&W.document;const secs=D?[...D.querySelectorAll('section.part:not(#hw):not(#errpanel)')].map(x=>{const h=x.querySelector('h2');return {id:x.id,t:(h?h.textContent.trim():x.id)};}).filter(x=>x.id):[];
-    const curSec=(()=>{if(!D)return '';let best='',top=-1e9;D.querySelectorAll('section.part').forEach(x=>{const r=x.getBoundingClientRect();if(r.top<160&&r.top>top){top=r.top;best=x.id;}});return best;})();
-    const KIND={letter:['Вставь букву','Вставь пропущенную букву','к[о]рова\nс[о]бака // словарное слово\nчу[в/—]ство\nвкус[—/т]ный\nтетр[а]дь, м[о]локо, к[а]рандаш','Слово с буквой в квадратных скобках: к[о]рова. Вторую букву сайт подберёт сам (о—а, е—и, д—т…). Свои варианты через /: чу[в/—]ство, первый верный, «—» значит «ничего не пишем». Слова можно через запятую. Пояснение после //.'],
-      choice:['Выбери ответ','Выбери правильный ответ','мама = 1-е склонение / 2-е склонение\nгрибы (на опушке выросли грибы) = подлежащее / дополнение / обстоятельство // Что выросло? Грибы.','Одна строка — один вопрос. После = правильный ответ, потом через / неверные. Пояснение после //. Варианты перемешаются сами.'],
-      nb:['В тетрадь','Выполни в тетради','Спиши предложения, подчеркни главные члены.\nУпр. 173: просклоняй слово орёл.','Одна строка — одно задание в тетрадь. Под ним кнопки «Сделано верно» и «Есть ошибки».']};
-    const o=document.createElement('div');o.className='ov mt';document.body.appendChild(o);
-    const close=()=>o.remove();
-    o.innerHTML='<div class="ov-card mt-card"><div class="mt-top"><h2>➕ Своё задание</h2><button type="button" class="x" id="mtX" aria-label="Закрыть">✕</button></div>'+
-      '<div class="mt-tabs" role="tablist"><button type="button" class="on" data-t="new">Новое</button><button type="button" data-t="bank">Мои задания</button><button type="button" data-t="here">В этом уроке</button></div>'+
-      '<div data-p="new" class="mt-p"><label>Куда добавить<select id="mtSec">'+secs.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===curSec?' selected':'')+'>'+esc(x.t)+'</option>').join('')+'</select></label>'+
-      '<div class="mt-kind">'+Object.keys(KIND).map((k,i)=>'<button type="button" data-k="'+k+'"'+(i?'':' class="on"')+'>'+KIND[k][0]+'</button>').join('')+'</div>'+
-      '<label>Задание<input type="text" id="mtTitle"></label><p class="muted small" id="mtHelp"></p><textarea id="mtText" rows="9"></textarea>'+
-      '<div class="mt-cnt" id="mtCnt"></div><label class="mt-ck"><input type="checkbox" id="mtSave" checked> Сохранить в «Мои задания», чтобы давать и другим ученикам</label>'+
-      '<label>Тема (для поиска)<input type="text" id="mtTopic" placeholder="например: непроизносимые согласные"></label>'+
-      '<button type="button" class="tr-b" id="mtAdd">Добавить в урок</button><div class="mt-msg" id="mtMsg"></div></div>'+
-      '<div data-p="bank" class="mt-p" hidden><input type="search" id="mtQ" placeholder="Поиск по теме или названию"><div id="mtBank" class="mt-list"><p class="muted">Загружаю…</p></div></div>'+
-      '<div data-p="here" class="mt-p" hidden><div id="mtHere" class="mt-list"><p class="muted">Загружаю…</p></div></div></div>';
-    o.querySelector('#mtX').onclick=close;o.addEventListener('click',e=>{if(e.target===o)close();});
-    let kind='letter';const tt=o.querySelector('#mtTitle'),tx=o.querySelector('#mtText'),cnt=o.querySelector('#mtCnt'),msg=o.querySelector('#mtMsg');
-    const setKind=k=>{kind=k;o.querySelectorAll('.mt-kind button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));if(!tt.dataset.own)tt.value=KIND[k][1];tx.placeholder=KIND[k][2];o.querySelector('#mtHelp').textContent=KIND[k][3];count();};
-    const count=()=>{const r=mtParse(kind,tx.value);const n=r.items.length;cnt.innerHTML=n?('Распознано: <b>'+n+'</b>'+(kind==='nb'?'':' '+mtPl(n,'вопрос','вопроса','вопросов'))+(kind!=='nb'&&n<20?' <span class="muted">· обычно не меньше 20</span>':'')):'';
-      if(r.bad.length)cnt.innerHTML+='<div class="bad">Не понял: '+r.bad.slice(0,5).map(esc).join(', ')+(r.bad.length>5?'…':'')+(kind==='letter'?'. Поставь букву в [ ] или дай варианты через /.':'. Нужно: вопрос = верный / неверный.')+'</div>';};
-    tt.addEventListener('input',()=>{tt.dataset.own=1;});tx.addEventListener('input',count);
-    o.querySelectorAll('.mt-kind button').forEach(b=>b.onclick=()=>setKind(b.dataset.k));setKind('letter');
-    const BANK=fdb.collection('taskbank');
-    async function put(d,secId){const id='t'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-      await base.collection('mytasks').doc(id).set({section:secId,kind:d.kind,title:d.title,items:d.items,from:d.bank||'',at:Date.now()});}
-    o.querySelector('#mtAdd').onclick=async()=>{const r=mtParse(kind,tx.value);if(!r.items.length){msg.textContent='Впиши хотя бы одно слово или вопрос.';return;}
-      const d={kind,title:tt.value.trim()||KIND[kind][1],items:r.items};msg.textContent='Добавляю…';
-      try{if(o.querySelector('#mtSave').checked){const bid='b'+Date.now().toString(36);await BANK.doc(bid).set({kind,title:d.title,topic:o.querySelector('#mtTopic').value.trim(),text:tx.value,items:r.items,at:Date.now()});d.bank=bid;}
-        await put(d,o.querySelector('#mtSec').value);msg.innerHTML='<b>Готово!</b> Задание появилось в конце раздела у тебя и у ученика.';tx.value='';count();}
-      catch(e){msg.textContent='Не получилось: '+(e.message||e)+(/permission/i.test(String(e.message||e))?' Похоже, в правила Firestore ещё не добавлен блок taskbank.':'');}};
-    let bankDocs=null;
-    async function showBank(){const box=o.querySelector('#mtBank');try{if(!bankDocs)bankDocs=(await BANK.get()).docs.map(x=>Object.assign({id:x.id},x.data())).sort((a,b)=>(b.at||0)-(a.at||0));}catch(e){box.innerHTML='<p class="muted">Не открылось: '+esc(e.message||e)+'</p>';return;}
-      const q=o.querySelector('#mtQ').value.trim().toLowerCase();const L=bankDocs.filter(d=>!q||((d.title||'')+' '+(d.topic||'')+' '+(d.text||'')).toLowerCase().includes(q));
-      box.innerHTML=L.length?L.map(d=>'<div class="mt-row"><div><b>'+esc(d.title||'')+'</b><span class="muted small">'+esc(KIND[d.kind]?KIND[d.kind][0]:'')+' · '+(d.items||[]).length+(d.topic?' · '+esc(d.topic):'')+'</span><span class="muted small mt-ex">'+esc((d.items||[]).slice(0,4).map(x=>x.q).join(', '))+'</span></div><div class="mt-act"><button type="button" class="tr-b" data-use="'+d.id+'">В урок</button><button type="button" class="tr-b q" data-del="'+d.id+'">Удалить</button></div></div>').join(''):'<p class="muted">'+(bankDocs.length?'Ничего не нашлось.':'Здесь будут задания, которые ты сохранишь. Сделай первое во вкладке «Новое».')+'</p>';
-      box.querySelectorAll('[data-use]').forEach(b=>b.onclick=async()=>{const d=bankDocs.find(x=>x.id===b.dataset.use);b.textContent='Добавляю…';
-        try{await put({kind:d.kind,title:d.title,items:(d.items||[]).map(x=>Object.assign({},x,{o:mtShuffle(x.o)})),bank:d.id},o.querySelector('#mtSec').value||curSec);b.textContent='Добавлено ✓';}catch(e){b.textContent='Не вышло';}});
-      box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent='Точно?';return;}
-        try{await BANK.doc(b.dataset.del).delete();bankDocs=bankDocs.filter(x=>x.id!==b.dataset.del);showBank();}catch(e){b.textContent='Не вышло';}});}
-    async function showHere(){const box=o.querySelector('#mtHere');let L=[];try{L=(await base.collection('mytasks').get()).docs.map(x=>Object.assign({id:x.id},x.data())).sort((a,b)=>(a.at||0)-(b.at||0));}catch(e){box.innerHTML='<p class="muted">Не открылось.</p>';return;}
-      const sn=id=>(secs.find(x=>x.id===id)||{t:id}).t;
-      box.innerHTML=L.length?L.map(d=>'<div class="mt-row"><div><b>'+esc(d.title||'')+'</b><span class="muted small">'+esc(sn(d.section))+' · '+(d.items||[]).length+'</span></div><div class="mt-act"><button type="button" class="tr-b q" data-rm="'+d.id+'">Убрать из урока</button></div></div>').join(''):'<p class="muted">В этом уроке своих заданий пока нет.</p>';
-      box.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{try{await base.collection('mytasks').doc(b.dataset.rm).delete();showHere();}catch(e){b.textContent='Не вышло';}});}
-    o.querySelector('#mtQ').addEventListener('input',()=>showBank());
-    o.querySelectorAll('.mt-tabs button').forEach(b=>b.onclick=()=>{o.querySelectorAll('.mt-tabs button').forEach(x=>x.classList.toggle('on',x===b));
-      o.querySelectorAll('.mt-p').forEach(p=>p.hidden=p.dataset.p!==b.dataset.t);if(b.dataset.t==='bank'){o.querySelector('[data-p=bank]').prepend(o.querySelector('#mtSec').closest('label'));showBank();}
-      if(b.dataset.t==='new')o.querySelector('[data-p=new]').prepend(o.querySelector('#mtSec').closest('label'));if(b.dataset.t==='here')showHere();});
-    tx.focus();
-  }
   /* ================= ПОДСКАЗКА «КАК РАБОТАТЬ» ================= */
   const TOUR=[
     ['⏳','Задания открывает учитель','Шаги появляются по одному. Новый шаг откроется сам, и страница прокрутится к нему.'],
@@ -713,7 +622,6 @@ body{background:var(--bg);color:var(--ink)}
         '<button type="button" class="tb" id="findme">🔎 <span class="lbl">Где ученик</span></button>'+
         '<button type="button" class="tb" id="follow" aria-pressed="false">👀 <span class="lbl">Следить</span></button>'+
         '<button type="button" class="tb" id="call">📍 <span class="lbl">Позвать сюда</span></button>'+
-        '<button type="button" class="tb" id="mtBtn">➕ <span class="lbl">Задание</span></button>'+
         '<button type="button" class="tb" id="txedBtn" aria-pressed="false">✏️ <span class="lbl">Править текст</span></button>'+
         '<button type="button" class="tb quiet" id="reset">↺ <span class="lbl">Заново</span></button>'+
         '<a class="tb quiet" href="admin.html">Ученики</a><span class="dot" id="conn" title="Связь"></span>';
@@ -757,7 +665,6 @@ body{background:var(--bg);color:var(--ink)}
         const sec=sp?(W.__sync.describe?W.__sync.describe(sp):W.__sync.section(sp)):'';
         $('#where').innerHTML=on?(sec?'Сейчас: <b></b>':'Ученик в сети'):'Ученик не в сети';const b=$('#where b');if(b)b.textContent=sec;fit();}
       setInterval(paint,10000);
-      const mb=$('#mtBtn');if(mb)mb.onclick=()=>openBuilder(W);
       const xb=$('#txedBtn');if(xb)xb.onclick=()=>{const on=xb.getAttribute('aria-pressed')!=='true';xb.setAttribute('aria-pressed',String(on));xb.classList.toggle('on',on);xb.querySelector('.lbl').textContent=on?'Готово':'Править текст';if(W.__txedToggle)W.__txedToggle(on);};
       let armed=false;const rb=$('#reset'),rl=rb.querySelector('.lbl');
       rb.onclick=async()=>{

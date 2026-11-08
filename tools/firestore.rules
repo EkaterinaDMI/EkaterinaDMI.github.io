@@ -24,10 +24,6 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if isAdmin();
     }
-    // мои задания из конструктора: только учитель
-    match /taskbank/{id} {
-      allow read, write: if isAdmin();
-    }
     match /board/{id} {
       allow read: if signedIn();
       allow write: if isAdmin();
