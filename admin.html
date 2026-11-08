@@ -606,6 +606,7 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
       if(a.badges&&a.badges.length)L.push('Награды: '+a.badges.join(', '));});
     const r=rev.exists?rev.data():null;if(r&&((r.topics||[]).length||r.note))L.push('','Повторить на следующем уроке: '+(r.topics||[]).join('; ')+(r.note?' · заметка: '+r.note:''));
     const I=imgs.docs.map(d=>d.data());if(I.length){L.push('','Свои задания картинкой (пришли Claude скриншоты):');I.forEach((d,i)=>L.push((i+1)+') ['+(d.sectionName||d.section)+'] '+(d.caption||'без подписи')+' · '+(d.check===true?'верно':d.check===false?'есть ошибки':'не проверено')+(d.note?' · ошибки: '+d.note:'')));}
+    try{const tx=await ref.collection('texts').get();tx.docs.map(d=>d.data()).filter(d=>(d.text||'').trim()).forEach(d=>L.push('','Текст ученика · '+(d.label||'')+':',d.text.trim()));}catch(e){}
     return L.join('\n');
   }
 })();

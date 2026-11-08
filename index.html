@@ -603,6 +603,7 @@ body{background:var(--bg);color:var(--ink)}
         const I=imgs.docs.map(d=>d.data());if(I.length){L.push('','Свои задания картинкой:');I.forEach((d,i)=>L.push((i+1)+') ['+(d.sectionName||d.section)+'] '+(d.caption||'без подписи')+' · '+(d.check===true?'верно':d.check===false?'есть ошибки':'не проверено')+(d.note?' · ошибки: '+d.note:'')));}
         if(ph.docs&&ph.docs.length){const tp=ph.docs.filter(x=>x.data().task);const hp=ph.docs.length-tp.length;if(tp.length)L.push('','Фото из тетради на уроке: '+tp.length+' шт. ('+[...new Set(tp.map(x=>x.data().label||''))].filter(Boolean).join('; ')+')');if(hp)L.push('','Фото ДЗ прислано: '+hp+' шт.');}
         if(dn&&dn.exists&&dn.data().done)L.push('Ученик отметил, что ДЗ выполнено.');
+        try{const tx=await base.collection('texts').get();tx.docs.map(d=>d.data()).filter(d=>(d.text||'').trim()).forEach(d=>L.push('','Текст ученика · '+(d.label||'')+':',d.text.trim()));}catch(e){}
         return L.join('\n');
       },
       ready:()=>{ready=true;const w=frame.contentWindow;initial.forEach(ev=>w.__sync.apply(ev,true));pend.forEach(ev=>w.__sync.apply(ev,false));pend=[];

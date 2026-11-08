@@ -539,5 +539,17 @@ html.txed .txed-blk{outline:2px solid #B5532E!important;outline-offset:6px}
     };
   })();
 
+
+  /* ---------- тексты ученика (сочинения): учитель сохраняет то, что пишет ученик ---------- */
+  if (T) {
+    const kt = new Map();
+    const slug = t => String(t).toLowerCase().replace(/[^a-zа-яё0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'text';
+    document.addEventListener('input', e => {
+      const el = e.target; if (!(el instanceof HTMLTextAreaElement) || !el.dataset.keep) return;
+      clearTimeout(kt.get(el)); kt.set(el, setTimeout(() => {
+        base.collection('texts').doc(slug(el.dataset.keep)).set({ label: el.dataset.keep, text: el.value, at: Date.now() }).catch(() => {});
+      }, 1200));
+    }, true);
+  }
   addEventListener('load', () => setTimeout(() => API.ready(), 400));
 })();
