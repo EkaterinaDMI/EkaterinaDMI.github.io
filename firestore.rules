@@ -11,6 +11,9 @@ service cloud.firestore {
     match /students/{sid} {
       allow get: if signedIn();
       allow list, create, update, delete: if isAdmin();
+      // ученик сам выбирает персонажа и копит прогресс тренажёра «Мои ошибки»
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar', 'color', 'avatarChosen', 'trainer']);
       match /lessons/{id} {
         allow read: if signedIn();
         allow write: if isAdmin();
