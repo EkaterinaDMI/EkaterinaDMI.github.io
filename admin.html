@@ -7,7 +7,7 @@
 <title>Мои ученики</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,500;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>
 /* Layout: слева сетка карточек учеников, по нажатию — карточка ученика с уроком сегодня, прогрессом и листами */
 :root{
@@ -136,6 +136,57 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
 .mst{font:inherit;font-size:.8rem;font-weight:700;border-radius:999px;padding:4px 12px;border:1.5px solid var(--ink);cursor:pointer;min-width:96px;background:var(--surface)}
 .mst.now{background:var(--lemon)}.mst.done{background:var(--mint);color:#fff;border-color:var(--mint)}
 
+/* ===== Стиль «Тетрадь, крупно» (А3) ===== */
+:root{--bg:#F7F3EC;--surface:#FFFFFF;--ink:#2B2622;--muted:#8A7F74;--line:#E6DED2;--accent:#B5532E;--accent-soft:#F3E7DA;--soft:#F3E7DA;--coral:#C9744F;--lemon:#E2A54B;--mint:#7C9A6B;--ok:#5E7F4E;--bad:#B5532E}
+body{background:var(--bg)}
+h1,h2,.tday .tm,.stats b{font-family:var(--f-d);font-style:normal;font-weight:500}
+h1{font-size:1.6rem}h2{font-size:1.2rem}
+.brand .me{border:0;width:44px;height:44px}
+.brand .ow{display:none}
+.top{padding-bottom:12px;border-bottom:1px solid var(--line)}
+.card,.sc,.sh,.lb,.fd,.tday .tr,.sd{border:1px solid var(--line)!important;box-shadow:none!important;background:var(--surface)}
+.card{border-radius:20px;padding:18px}
+.sc{border-radius:18px}.sc:hover,.fd:hover{border-color:var(--accent)!important;background:var(--surface)}
+.sc .av,.head .av,.tday .av{border:0;background:var(--accent-soft)}
+.sc .now{background:var(--accent-soft);color:var(--ink)}
+.add{border:1.5px dashed var(--line)!important;background:transparent}
+.add:hover{border-color:var(--accent)!important;color:var(--accent)}
+.tday,.today{background:var(--surface)!important;border:1px solid var(--line)!important;border-top:4px solid var(--accent)!important}
+.tday .tm{color:var(--accent);font-size:1.25rem}
+.tday .tr{border-radius:16px}
+.sh.cur{border-color:var(--accent)!important;box-shadow:inset 4px 0 0 var(--accent)!important}
+.b{border-width:1px;border-radius:12px}
+.b.main{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:none}
+.b.hot{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 6px 16px rgba(181,83,46,.22)}
+.b.quiet{border-color:var(--line);color:var(--ink);background:var(--surface)}
+.b.quiet:hover{border-color:var(--accent);color:var(--accent)}
+.b.warn{border-color:var(--line);color:var(--bad)}
+.stats div{background:var(--bg);border:0!important;border-radius:14px}
+.xp{border:0;height:8px;background:var(--line)}.xp i{background:var(--accent)}
+input[type=text],input[type=date],input[type=number],input[type=time],select{border:1px solid var(--line)!important;background:var(--surface);border-radius:12px}
+input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shadow:0 0 0 3px rgba(181,83,46,.15)}
+.chip{border:0;background:var(--bg)}.chip.g{background:#E7EEDD;color:var(--ok)}.chip.r{background:var(--accent-soft);color:var(--accent)}.chip.y{background:#F7E9CF;color:#8A5B12}
+.pill{background:var(--accent-soft);color:var(--accent)}.pill.g{background:#E7EEDD;color:var(--ok)}
+.chipb{border:1px solid var(--line)}.chipb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.fd{border-radius:0 16px 16px 16px}.fd::before{border:1px solid var(--line);border-bottom:0;left:-1px}
+.fn{font-family:var(--f-d);font-weight:500;font-size:1.05rem}
+.mst{border:1px solid var(--line)}.mst.now{background:var(--accent);border-color:var(--accent);color:#fff}.mst.done{background:var(--mint);border-color:var(--mint)}
+.res,.link{background:var(--bg)}
+.toast{background:var(--ink);color:#fff}
+.avs button{border:1px solid var(--line);background:var(--surface)}
+
+.gh{margin:6px 2px -6px}#inbMore{justify-self:start;margin-top:8px}
+.sc .now.nw{background:var(--accent);color:#fff}.sc .now.ok{background:#E7EEDD;color:var(--ok)}
+.inbl{display:grid;gap:0}
+.inbl .ir{display:grid;grid-template-columns:minmax(0,1fr) 200px auto;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.inbl .ir:first-child{border-top:0}
+.inbl:not(.all) .ir:nth-child(n+6){display:none}
+.inbl .ir b{font-weight:600}
+.inbl .ir .muted{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.inbl .ir select{min-height:38px}
+.inbl .b.hot{box-shadow:none}
+@media (max-width:640px){.inbl .ir{grid-template-columns:minmax(0,1fr) auto}.inbl .ir>span{grid-column:1/-1}}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -241,7 +292,7 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
     const free=sheets.filter(s=>!s.sid);
     const P=pending();
     const M=missing();const D=dupGroups();
-    $('#app').innerHTML=todayHtml()+(D.length?'<section class="card today"><h2>Ученики-двойники</h2><p class="muted">Эти ученики записаны несколько раз. В каждой группе нажми «Оставить этого» у нужного: листы, результаты и история остальных перейдут к нему, а лишние записи удалятся.</p><div id="dups" style="display:grid;gap:14px"></div></section>':'')+(M.length?'<section class="card today"><h2>Ученики из кабинета Claude</h2><p class="muted">Ещё нет на сайте: '+M.map(r=>esc(r.name)+' ('+esc(r.grade)+')').join(', ')+'.</p><div class="row"><button type="button" class="b main" id="rosterGo">Добавить всех ('+M.length+')</button></div></section>':'')+(P.length?'<section class="card today"><h2>Новые листы от Claude</h2><div id="inb" style="display:grid;gap:8px"></div></section>':'')+'<div class="grid" id="grid"></div>'+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
+    $('#app').innerHTML=todayHtml()+(D.length?'<section class="card today"><h2>Ученики-двойники</h2><p class="muted">Эти ученики записаны несколько раз. В каждой группе нажми «Оставить этого» у нужного: листы, результаты и история остальных перейдут к нему, а лишние записи удалятся.</p><div id="dups" style="display:grid;gap:14px"></div></section>':'')+(M.length?'<section class="card today"><h2>Ученики из кабинета Claude</h2><p class="muted">Ещё нет на сайте: '+M.map(r=>esc(r.name)+' ('+esc(r.grade)+')').join(', ')+'.</p><div class="row"><button type="button" class="b main" id="rosterGo">Добавить всех ('+M.length+')</button></div></section>':'')+'<h2 class="gh">Ученики</h2><div class="grid" id="grid"></div>'+(P.length?'<section class="card inbc"><div class="row"><h2 style="flex:1">Новые листы от Claude</h2><span class="muted">'+P.length+'</span></div><div id="inb" class="inbl"></div>'+(P.length>5?'<button type="button" class="b quiet" id="inbMore">Показать все ('+P.length+')</button>':'')+'</section>':'')+(free.length?'<section class="card"><h2>Листы без ученика</h2><p class="muted">Привяжи лист к ученику, чтобы его результаты попадали в карточку.</p><div id="free" style="display:grid;gap:8px"></div></section>':'');
     const rg=$('#rosterGo');if(rg)rg.onclick=importRoster;
     fillToday();
     D.forEach(grp=>{const box=document.createElement('div');box.style.cssText='display:grid;gap:6px;padding:10px;border:1px dashed currentColor;border-radius:12px';
@@ -257,16 +308,17 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
       const c=document.createElement('button');c.type='button';c.className='sc';
       c.innerHTML='<span class="av">'+esc(s.avatar||'🙂')+'</span><span class="nm">'+esc(s.name)+'</span><span class="meta">'+esc(s.grade||'')+(s.grade?' · ':'')+'ур. '+lv.n+' · '+(st.points||0)+' очк.</span>'+
         '<span class="now'+(cur?'':' no')+'">'+(cur?'Текущий лист: '+esc(short(cur.title)):'Лист не выбран')+'</span>';
-      const np=pendingFor(s).length;if(np)c.insertAdjacentHTML('beforeend','<span class="now" style="background:#FFF4CC">Новый лист от Claude</span>');
-      const hd=hwdone[s.id];if(hd)c.insertAdjacentHTML('beforeend','<span class="now" style="background:#DFF5E3">ДЗ сдано · '+esc(hwWhen(hd.at))+'</span>');
+      const np=pendingFor(s).length;if(np)c.insertAdjacentHTML('beforeend','<span class="now nw">Новый лист от Claude</span>');
+      const hd=hwdone[s.id];if(hd)c.insertAdjacentHTML('beforeend','<span class="now ok">ДЗ сдано · '+esc(hwWhen(hd.at))+'</span>');
       c.onclick=()=>showStudent(s.id);g.appendChild(c);});
-    P.forEach(it=>{const r=document.createElement('div');r.className='row';
+    P.forEach(it=>{const r=document.createElement('div');r.className='row ir';
       const byName=students.filter(x=>norm(x.name)===norm(it.student));const match=(it.key&&students.find(x=>x.key===it.key))||(byName.length===1?byName[0]:null);
       r.innerHTML='<span style="flex:1 1 220px;min-width:0"><b></b><br><span class="muted"></span></span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(x=>'<option value="'+x.id+'"'+(match&&match.id===x.id?' selected':'')+'>'+esc(x.name+(x.grade?' · '+x.grade:''))+'</option>').join('')+'</select><button type="button" class="b hot">Добавить</button>';
       r.querySelector('b').textContent=it.title||it.file;r.querySelector('.muted').textContent=(it.note||'')+(it.added?' · '+K.fmtDate(it.added):'');
       r.querySelector('button').onclick=async e=>{const v=r.querySelector('select').value;if(!v)return toast('Выбери ученика или сначала добавь его');const stu=students.find(x=>x.id===v);
         e.target.textContent='Добавляю…';try{await addFromInbox(it,stu);toast('Лист добавлен, это урок сегодня у ученика '+stu.name+(stu.grade?' ('+stu.grade+')':''));load();}catch(err){e.target.textContent='Добавить';toast('Не получилось: '+(err.message||err));}};
       $('#inb').appendChild(r);});
+    const im=$('#inbMore');if(im)im.onclick=()=>{$('#inb').classList.add('all');im.remove();};
     const add=document.createElement('button');add.type='button';add.className='sc add';add.innerHTML='<b style="font-size:1.6rem">+</b><span>Добавить ученика</span>';add.onclick=()=>editStudent(null);g.appendChild(add);
     free.forEach(sh=>{const r=document.createElement('div');r.className='row';
       r.innerHTML='<span style="flex:1 1 200px;min-width:0">'+esc(sh.title)+'</span><select aria-label="Ученик"><option value="">Выбери ученика</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name+(s.grade?' · '+s.grade:''))+'</option>').join('')+'</select><button type="button" class="b">Привязать</button>';
