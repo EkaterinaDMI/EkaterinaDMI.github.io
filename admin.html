@@ -453,7 +453,7 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
     $('#txBack').onclick=showList;
     let E=[];try{E=(await fdb.collection('textedits').get()).docs.map(d=>Object.assign({id:d.id},d.data())).sort((a,b)=>(b.at||0)-(a.at||0));}
     catch(e){$('#app section').innerHTML='<h2>✏️ Правки текста</h2><p class="muted">Не открылось: '+esc(e.message||e)+'. Возможно, в правила Firestore ещё не добавлен блок textedits.</p>';return;}
-    const body=E.length?E.map(x=>'<div class="tx" data-id="'+esc(x.id)+'"><div class="muted">'+esc(x.sheet||'')+(x.at?' · '+new Date(x.at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'')+'</div>'+
+    const body=E.length?E.map(x=>'<div class="tx" data-id="'+esc(x.id)+'"><div class="muted">'+(x.id[0]==='b'?'<b style="color:var(--accent)">Правило целиком</b> · ':'')+esc(x.sheet||'')+(x.at?' · '+new Date(x.at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'')+'</div>'+
         '<div class="txw"><span class="k">Было</span><span>'+esc(x.was||'')+'</span></div><div class="txn"><span class="k">Стало</span><span>'+(x.html===''?'<i>строчка убрана</i>':esc(x.now||''))+'</span></div>'+
         '<div class="row"><button type="button" class="b quiet" data-undo="'+esc(x.id)+'">Вернуть как было</button></div></div>').join('')
       :'<p class="muted">Правок пока нет. На уроке нажми ✏️ «Править текст» в верхней полоске, исправь текст и нажми мимо.</p>';
@@ -461,7 +461,7 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
       '<p class="muted">Твои исправления в листах. Они уже работают во всех листах и у всех учеников, где встречается этот текст. Нажми «Скопировать для Claude» и пришли мне, чтобы я внёс их и в новые листы.</p>'+
       (E.length?'<div class="row"><button type="button" class="b hot" id="txCopy">📋 Скопировать для Claude</button></div>':'')+'<div class="txl">'+body+'</div></section>';
     $('#txBack').onclick=showList;
-    const c=$('#txCopy');if(c)c.onclick=()=>copy('Правки текста для Claude ('+E.length+'):\n\n'+E.map((x,i)=>(i+1)+'. Лист: '+(x.sheet||'')+'\nБыло: '+(x.was||'')+'\nСтало: '+(x.html===''?'(строчку убрать)':(x.now||''))).join('\n\n'),'Скопировано. Вставь в чат с Claude');
+    const c=$('#txCopy');if(c)c.onclick=()=>copy('Правки текста для Claude ('+E.length+'):\n\n'+E.map((x,i)=>(i+1)+'. '+(x.id[0]==='b'?'Правило целиком. ':'')+'Лист: '+(x.sheet||'')+'\nБыло: '+(x.was||'')+'\nСтало: '+(x.html===''?'(строчку убрать)':(x.now||''))).join('\n\n'),'Скопировано. Вставь в чат с Claude');
     document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=async()=>{b.textContent='Возвращаю…';try{await fdb.collection('textedits').doc(b.dataset.undo).delete();toast('Вернула как было');showEdits();}catch(e){b.textContent='Вернуть как было';toast('Не получилось: '+(e.message||e));}});
   }
   async function showLib(folder){

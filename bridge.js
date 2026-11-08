@@ -69,7 +69,7 @@
 
   /* ---------- синхронизация ---------- */
   /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
-  const SKIP = '[contenteditable=true],.txed-tip,.tph,.tph-toast,.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  const SKIP = '[contenteditable=true],[contenteditable=true] *,.txed-ui,.tph,.tph-toast,.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -416,56 +416,125 @@ html.st-mode:not(.dw-show) .dw-bar{display:none!important}
   /* ---------- правка текста учителем: сохраняется для всех листов и учеников ---------- */
   (function(){
     const UNIT = 'p,li,h1,h2,h3,h4,h5,td,th,dt,dd,figcaption,blockquote,.ex-task,.theory,.dict-veil,.memo,.rule,.note,.tip,.label';
-    const BAD = 'input,button,select,textarea,canvas,video,audio,iframe,[contenteditable=true],.gp,.wcard,.basket,.tok,.opt,.st';
-    const OUT = 'nav.chips,#dwBar,.dw-bar,.dw-tb,#errpanel,.rv-panel,.badges,.stubar,.txed-tip,#finRep';
-    const norm = h => String(h || '').replace(/\s+/g, ' ').replace(/> </g, '><').trim();
+    const BLOCK = '.theory,.memo,.dict-veil,.rule';
+    const BAD = 'input,button,select,textarea,canvas,video,audio,iframe,.gp,.wcard,.basket,.tok,.opt,.st';
+    const OUT = 'nav.chips,#dwBar,.dw-bar,.dw-tb,#errpanel,.rv-panel,.badges,.stubar,.txed-ui,#finRep';
+    const norm = h => String(h || '').replace(/\s*contenteditable="[^"]*"/g, '').replace(/\s*data-txu=""/g, '').replace(/\s*spellcheck="[^"]*"/g, '').replace(/\s+/g, ' ').replace(/> </g, '><').trim();
     const h32 = (s, seed) => { let h = seed >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
     const keyOf = html => { const n = norm(html); return 'k' + h32(n, 2166136261) + h32(n, 0x9747b28c) + n.length.toString(36); };
-    const isUnit = el => el.matches(UNIT) && !el.closest(OUT) && !el.querySelector(BAD) && !el.querySelector(UNIT) && el.textContent.trim().length > 1;
-    const units = () => [...document.body.querySelectorAll(UNIT)].filter(isUnit);
+    const E = () => API.edits || {};
     const byKey = new Map();
-    const mark = el => { if (!el.__k) { el.__k = keyOf(el.innerHTML); el.__orig = el.innerHTML; } if (!byKey.has(el.__k)) byKey.set(el.__k, []); if (!byKey.get(el.__k).includes(el)) byKey.get(el.__k).push(el); return el.__k; };
-    const show = (el, html) => { el.innerHTML = html == null ? el.__orig : html; el.style.display = html === '' ? 'none' : ''; };
-    const put = (k, html) => { (byKey.get(k) || []).forEach(el => { if (el !== document.activeElement) show(el, html); }); };
+    const reg = (k, el) => { if (!byKey.has(k)) byKey.set(k, []); if (!byKey.get(k).includes(el)) byKey.get(k).push(el); };
+    /* блоки-правила целиком */
+    const blocks = () => [...document.body.querySelectorAll(BLOCK)].filter(el => !el.parentElement.closest(BLOCK) && !el.closest(OUT) && !el.querySelector(BAD));
+    const markB = el => { if (!el.__bk) { el.__bk = 'b' + keyOf(el.innerHTML); el.__borig = el.innerHTML; reg(el.__bk, el); } return el.__bk; };
+    /* мелкие куски текста */
+    const isUnit = el => el.matches(UNIT) && !el.closest(OUT) && !el.closest('[data-txb]') && !el.querySelector(BAD) && !el.querySelector(UNIT) && el.textContent.trim().length > 1;
+    const units = root => [...(root || document.body).querySelectorAll(UNIT)].filter(isUnit);
+    const markU = el => { if (!el.__k) { el.__k = keyOf(el.innerHTML); el.__orig = el.innerHTML; reg(el.__k, el); } return el.__k; };
+    const showU = (el, html) => { el.innerHTML = html == null ? el.__orig : html; el.style.display = html === '' ? 'none' : ''; };
+    const showB = (el, html) => {
+      if (html == null) { el.innerHTML = el.__borig; el.removeAttribute('data-txb'); el.style.display = ''; units(el).forEach(u => { u.__k = null; const k = markU(u); if (E()[k] != null) showU(u, E()[k]); }); }
+      else { el.innerHTML = html; el.setAttribute('data-txb', ''); el.style.display = html === '' ? 'none' : ''; }
+    };
+    const put = (k, html) => { (byKey.get(k) || []).forEach(el => { if (el.contains(document.activeElement) && el.isContentEditable) return; if (k[0] === 'b') showB(el, html); else showU(el, html); }); };
     window.__txed = { put };
     document.addEventListener('DOMContentLoaded', () => {
-      const E = API.edits || {};
-      units().forEach(el => { const k = mark(el); if (E[k] != null) show(el, E[k]); });
+      blocks().forEach(el => { const k = markB(el); if (E()[k] != null) showB(el, E()[k]); });
+      units().forEach(el => { const k = markU(el); if (E()[k] != null) showU(el, E()[k]); });
     });
     if (!T) return;
+
+    /* ---------- режим правки (только учитель) ---------- */
     const css = document.createElement('style');
-    css.textContent = `html.txed [data-txu]{outline:1.5px dashed #B5532E;outline-offset:3px;border-radius:4px;cursor:text;transition:background .15s}
+    css.textContent = `html.txed [data-txu]{outline:1.5px dashed #B5532E;outline-offset:3px;border-radius:4px;cursor:text}
 html.txed [data-txu]:hover{background:rgba(181,83,46,.06)}
 html.txed [data-txu]:focus{outline:2.5px solid #B5532E;background:rgba(181,83,46,.08)}
 html.txed [data-txu].txed-ok{background:rgba(124,154,107,.3)!important}
-.txed-tip{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:99;background:#2B2622;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100vw - 24px);text-align:center}`;
+html.txed .txed-blk{outline:2px solid #B5532E!important;outline-offset:6px}
+.txed-ui{font:600 13px/1.2 system-ui,-apple-system,sans-serif}
+.txed-tip{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:99;background:#2B2622;color:#fff;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100vw - 24px);text-align:center}
+.txed-chip{position:absolute;z-index:60;display:flex;gap:6px}
+.txed-chip button,.txed-fmt button{font:inherit;border:1px solid #E6DED2;background:#fff;color:#2B2622;border-radius:999px;padding:6px 11px;cursor:pointer;box-shadow:0 4px 12px rgba(43,38,34,.12);white-space:nowrap}
+.txed-chip button.m{background:#B5532E;border-color:#B5532E;color:#fff}
+.txed-fmt{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;background:#fff;border:1px solid #E6DED2;border-radius:16px;padding:8px;box-shadow:0 10px 30px rgba(43,38,34,.18);max-width:calc(100vw - 24px)}
+.txed-fmt button{box-shadow:none;border-radius:10px;min-width:38px;padding:7px 10px}
+.txed-fmt b{align-self:center;color:#8A7F74;font-weight:600;padding:0 4px}`;
     document.documentElement.appendChild(css);
-    let tip = null; const say = (t, ms) => { if (!tip) { tip = document.createElement('div'); tip.className = 'txed-tip'; document.documentElement.appendChild(tip); } tip.textContent = t; tip.hidden = false; clearTimeout(tip.__t); if (ms) tip.__t = setTimeout(() => { tip.hidden = true; }, ms); };
-    const save = async el => {
-      const k = el.__k; const html = norm(el.innerHTML);
-      if (html === el.__last0) return;
-      el.__last0 = html;
+    let tip = null; const say = (t, ms) => { if (!tip) { tip = document.createElement('div'); tip.className = 'txed-ui txed-tip'; document.documentElement.appendChild(tip); } tip.textContent = t; tip.hidden = false; clearTimeout(tip.__t); if (ms) tip.__t = setTimeout(() => { tip.hidden = true; }, ms); };
+    const ok = el => { el.classList.add('txed-ok'); setTimeout(() => el.classList.remove('txed-ok'), 900); };
+    const tidy = h => h == null ? h : String(h).replace(/\s*(contenteditable|spellcheck)="[^"]*"/g, '').replace(/\s*data-txu=""/g, '').replace(/\s*style=""/g, '').replace(/\s*class="txed-[a-z]+"/g, '');
+    async function persist(k, val, orig, el, msg){ val = tidy(val); orig = tidy(orig);
+      try { await API.saveEdit(k, val, orig, document.title); put(k, val); API.emit({ k: 'txed', key: k, html: val }); if (el) ok(el); say(msg, 2600); }
+      catch (e) { say('Не сохранилось: ' + (e.message || e), 4000); }
+    }
+    const saveU = el => {
+      const html = norm(el.innerHTML); if (html === el.__last0) return; el.__last0 = html;
       const reset = html === norm(el.__orig); const gone = !el.textContent.trim() && !el.querySelector('img');
-      const val = reset ? null : gone ? '' : el.innerHTML;
-      try {
-        await API.saveEdit(k, val, el.__orig, document.title);
-        put(k, val); if (gone) show(el, '');
-        API.emit({ k: 'txed', key: k, html: val });
-        el.classList.add('txed-ok'); setTimeout(() => el.classList.remove('txed-ok'), 900);
-        say(reset ? 'Вернула как было' : gone ? 'Строчка убрана во всех листах. Вернуть можно в админке, «Правки текста»' : 'Сохранено. Так будет во всех листах, где есть этот текст', 2600);
-      } catch (e) { say('Не сохранилось: ' + (e.message || e), 4000); }
+      const val = reset ? null : gone ? '' : el.innerHTML; if (gone) showU(el, '');
+      persist(el.__k, val, el.__orig, el, reset ? 'Вернула как было' : gone ? 'Строчка убрана во всех листах. Вернуть можно в админке, «Правки текста»' : 'Сохранено. Так будет во всех листах, где есть этот текст');
     };
+    const saveB = el => {
+      const html = norm(el.innerHTML); if (html === el.__last0) return; el.__last0 = html;
+      const reset = html === norm(el.__borig); const gone = !el.textContent.trim() && !el.querySelector('img');
+      const val = reset ? null : gone ? '' : el.innerHTML;
+      persist(el.__bk, val, el.__borig, el, reset ? 'Правило вернулось как было' : gone ? 'Правило убрано во всех листах. Вернуть можно в админке' : 'Твоё правило сохранено. Оно будет во всех листах вместо старого');
+    };
+    const editable = (el, on) => { if (on) { el.setAttribute('data-txu', ''); el.contentEditable = 'true'; el.spellcheck = true; } else { el.removeAttribute('data-txu'); el.removeAttribute('contenteditable'); } };
+    function bindU(el){ markU(el); editable(el, true); el.__last0 = norm(el.innerHTML);
+      if (!el.__bu) { el.__bu = 1; el.addEventListener('blur', () => { if (el.isContentEditable && !el.closest('[data-txb]')) saveU(el); }); el.addEventListener('keydown', e => { if (e.key === 'Escape') el.blur(); }); } }
+    function bindB(el){ editable(el, true); el.__last0 = norm(el.innerHTML);
+      if (!el.__bb) { el.__bb = 1; el.addEventListener('focusout', e => { if (!el.hasAttribute('data-txb') || !el.isContentEditable) return; if (e.relatedTarget && (el.contains(e.relatedTarget))) return; setTimeout(() => { if (!el.contains(document.activeElement)) saveB(el); }, 0); }); } }
+    /* кнопки над правилами (в documentElement, чтобы не сдвигать адреса элементов) */
+    let chips = [];
+    const place = () => chips.forEach(c => { const r = c.__el.getBoundingClientRect(); c.style.display = (r.height ? '' : 'none'); c.style.top = (scrollY + r.top - 16) + 'px'; c.style.left = (scrollX + Math.max(6, r.right - c.offsetWidth - 10)) + 'px'; });
+    function chipFor(el){
+      const c = document.createElement('div'); c.className = 'txed-ui txed-chip'; c.__el = el;
+      const rep = el.hasAttribute('data-txb');
+      c.innerHTML = '<button type="button" class="m" data-a="new">✍️ ' + (rep ? 'Переписать правило' : 'Заменить правило целиком') + '</button>' + (rep ? '<button type="button" data-a="back">↩ Вернуть исходное</button>' : '');
+      c.addEventListener('mousedown', e => e.preventDefault());
+      c.addEventListener('click', e => { const a = e.target.closest('button'); if (!a) return;
+        if (a.dataset.a === 'new') {
+          units(el).forEach(u => editable(u, false));
+          if (!el.hasAttribute('data-txb')) { const lab = el.querySelector(':scope > .label'); el.innerHTML = (lab ? lab.outerHTML : '') + '<p>Напиши здесь своё правило</p>'; el.setAttribute('data-txb', ''); }
+          bindB(el);
+          el.classList.add('txed-blk'); el.focus();
+          const ps = el.querySelectorAll('p'); const last = ps[ps.length - 1] || el; const rg = document.createRange(); rg.selectNodeContents(last); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+          say('Пиши своё правило. Внизу кнопки: жирный, подчеркнуть, маркер, список. Сохранится, когда нажмёшь мимо', 4500);
+          refresh();
+        }
+        if (a.dataset.a === 'back') { editable(el, false); el.classList.remove('txed-blk'); persist(el.__bk, null, el.__borig, null, 'Правило вернулось как было'); showB(el, null); refresh(); }
+      });
+      document.documentElement.appendChild(c); return c;
+    }
+    /* кнопки оформления */
+    let fmt = null;
+    function fmtBar(){
+      fmt = document.createElement('div'); fmt.className = 'txed-ui txed-fmt';
+      const B = [['bold', '<b style="color:inherit;padding:0">Ж</b>', 'Жирный'], ['italic', '<i>К</i>', 'Курсив'], ['underline', '<u>Ч</u>', 'Подчеркнуть'], ['mark', '🖍', 'Маркер'], ['insertUnorderedList', '• список', 'Список'], ['insertOrderedList', '1. список', 'Нумерация'], ['removeFormat', '✕ формат', 'Убрать оформление'], ['undo', '↶', 'Отменить']];
+      fmt.innerHTML = B.map(b => '<button type="button" title="' + b[2] + '" data-c="' + b[0] + '">' + b[1] + '</button>').join('');
+      fmt.addEventListener('mousedown', e => e.preventDefault());
+      fmt.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const c = b.dataset.c;
+        if (c === 'mark') { const cur = document.queryCommandValue('backColor'); const on = /255, 2[23]\d, 1[0-9]{2}|ffe/i.test(cur || ''); document.execCommand('styleWithCSS', false, true); document.execCommand('backColor', false, on ? 'transparent' : '#FFE38A'); document.execCommand('styleWithCSS', false, false); }
+        else document.execCommand(c, false, null); });
+      document.documentElement.appendChild(fmt);
+    }
+    function refresh(){
+      chips.forEach(c => c.remove()); chips = [];
+      if (!document.documentElement.classList.contains('txed')) return;
+      blocks().forEach(el => { markB(el); chips.push(chipFor(el)); });
+      units().forEach(bindU);
+      requestAnimationFrame(place);
+    }
+    addEventListener('scroll', () => chips.length && place(), { passive: true });
+    addEventListener('resize', () => chips.length && place());
     window.__txedToggle = on => {
       document.documentElement.classList.toggle('txed', on);
-      if (on) {
-        units().forEach(el => { mark(el); el.setAttribute('data-txu', ''); el.contentEditable = 'true'; el.spellcheck = true; el.__last0 = norm(el.innerHTML);
-          if (!el.__bound) { el.__bound = 1; el.addEventListener('blur', () => { if (el.isContentEditable) save(el); });
-            el.addEventListener('keydown', e => { if (e.key === 'Escape') { el.blur(); } }); } });
-        say('Нажми на любой текст и исправляй. Сохраняется само, когда нажмёшь мимо', 3500);
-      } else {
+      if (on) { refresh(); if (!fmt) fmtBar(); fmt.hidden = false; say('Нажми на текст и исправляй. Чтобы написать правило заново, нажми «Заменить правило целиком»', 4500); }
+      else {
         if (document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
-        document.querySelectorAll('[data-txu]').forEach(el => { el.removeAttribute('data-txu'); el.contentEditable = 'inherit'; });
-        if (tip) tip.hidden = true;
+        document.querySelectorAll('[data-txu]').forEach(el => editable(el, false)); document.querySelectorAll('.txed-blk').forEach(el => el.classList.remove('txed-blk'));
+        chips.forEach(c => c.remove()); chips = []; if (fmt) fmt.hidden = true; if (tip) tip.hidden = true;
       }
     };
   })();
