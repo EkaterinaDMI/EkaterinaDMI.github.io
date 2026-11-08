@@ -323,10 +323,10 @@ a.tile.big:active,button.tile.big:active{transform:translate(2px,2px);box-shadow
     addEventListener('hashchange',()=>{view=(location.hash||'#home').slice(1);render();scrollTo(0,0);});
 
     function mapHtml(){
-      if(!program)return '';const g=(String(stu.grade||'').match(/\d+/)||[''])[0];const T=program.grades&&program.grades[g];if(!T)return '';
+      if(!program)return '';const CU=(program.custom||{})[stu.key];const g=(String(stu.grade||'').match(/\d+/)||[''])[0];const T=CU?CU.topics:(program.grades&&program.grades[g]);if(!T)return '';
       const m=Object.assign({},(program.students||{})[stu.key]||{},stu.map||{});
       const done=T.filter((_,i)=>m[i]==='done').length;
-      return '<section class="card"><div class="sec-h"><h2>Мой путь в '+g+' классе</h2><span class="muted">'+done+' из '+T.length+'</span></div><ol class="path">'+
+      return '<section class="card"><div class="sec-h"><h2>'+(CU?esc(CU.title):'Мой путь в '+g+' классе')+'</h2><span class="muted">'+done+' из '+T.length+'</span></div><ol class="path">'+
         T.map((t,i)=>{const s=m[i]||'next';return '<li class="'+s+'"><i aria-hidden="true">'+(s==='done'?'✓':s==='now'?'★':i+1)+'</i><span>'+esc(t)+(s==='now'?'<em>сейчас изучаем</em>':'')+'</span></li>';}).join('')+'</ol></section>';
     }
     function render(){

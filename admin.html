@@ -341,10 +341,10 @@ input[type=text],input[type=date],input[type=number],select{background:var(--sur
 
   /* ---------- карта программы ученика ---------- */
   const MST={next:'впереди',now:'сейчас',done:'пройдено'};
-  function mapOf(s){if(!program)return null;const g=(String(s.grade||'').match(/\d+/)||[''])[0];const T=program.grades&&program.grades[g];if(!T)return null;
-    return {g,T,m:Object.assign({},(program.students||{})[s.key]||{},s.map||{})};}
+  function mapOf(s){if(!program)return null;const CU=(program.custom||{})[s.key];const g=(String(s.grade||'').match(/\d+/)||[''])[0];const T=CU?CU.topics:(program.grades&&program.grades[g]);if(!T)return null;
+    return {g,T,cu:!!CU,m:Object.assign({},(program.students||{})[s.key]||{},s.map||{})};}
   function mapCard(s){const M=mapOf(s);if(!M)return '';
-    return '<section class="card"><details'+(open===s.id&&window._mapOpen?' open':'')+'><summary><b style="color:var(--ink);font-size:1rem">Карта программы, '+M.g+' класс</b> · '+M.T.filter((_,i)=>M.m[i]==='done').length+' из '+M.T.length+' пройдено</summary>'+
+    return '<section class="card"><details'+(open===s.id&&window._mapOpen?' open':'')+'><summary><b style="color:var(--ink);font-size:1rem">'+(M.cu?'Карта: чтение и письмо':'Карта программы, '+M.g+' класс')+'</b> · '+M.T.filter((_,i)=>M.m[i]==='done').length+' из '+M.T.length+' пройдено</summary>'+
       '<p class="muted">Нажимай на статус темы: впереди → сейчас → пройдено. Ученик видит эту карту у себя в кабинете.</p><div class="mp" id="mp">'+
       M.T.map((t,i)=>{const v=M.m[i]||'next';return '<div class="mpr"><span>'+(i+1)+'. '+esc(t)+'</span><button type="button" class="mst '+v+'" data-i="'+i+'">'+MST[v]+'</button></div>';}).join('')+'</div></details></section>';}
   function bindMap(s){const box=$('#mp');if(!box)return;const M=mapOf(s);
