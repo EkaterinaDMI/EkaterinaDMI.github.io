@@ -187,6 +187,12 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
 .inbl .b.hot{box-shadow:none}
 @media (max-width:640px){.inbl .ir{grid-template-columns:minmax(0,1fr) auto}.inbl .ir>span{grid-column:1/-1}}
 
+.txl{display:grid;gap:0}.tx{display:grid;gap:6px;padding:14px 0;border-top:1px solid var(--line)}.tx:first-child{border-top:0}
+.txw,.txn{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start;font-size:.95rem}
+.txw .k,.txn .k{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding-top:3px}
+.txw .k{color:var(--muted)}.txw span:last-child{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(181,83,46,.5)}
+.txn .k{color:var(--accent)}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -230,7 +236,7 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
     try{const r=await fetch('inbox/students.json?'+Date.now(),{cache:'no-store'});roster=r.ok?(await r.json()):[];}catch(e){roster=[];}
     try{const r=await fetch('inbox/program.json?'+Date.now(),{cache:'no-store'});program=r.ok?(await r.json()):null;}catch(e){program=null;}
     hwdone={};await Promise.all(students.filter(s=>s.current).map(async s=>{try{const d=await fdb.collection('sheets').doc(s.current).collection('presence').doc('hw').get();if(d.exists&&d.get('done'))hwdone[s.id]=d.data();}catch(e){}}));
-    watchHw(); if(open)showStudent(open);else if(/^#lib/.test(location.hash))showLib(location.hash.split('/')[1]||null);else showList();
+    watchHw(); if(open)showStudent(open);else if(location.hash==='#edits')showEdits();else if(/^#lib/.test(location.hash))showLib(location.hash.split('/')[1]||null);else showList();
   }
   let hwdone={},hwWatch=[];
   const hwWhen=t=>new Date(t).toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
@@ -351,7 +357,7 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
     const L=todayList();const C=todayList(true).filter(x=>x.off);const anySched=students.some(s=>Object.keys(s.sched||{}).length);
     const d=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
     const done=students.filter(s=>hwdone[s.id]);
-    return '<div class="row"><button type="button" class="b main libgo" id="libGo">📚 Библиотека листов</button></div>'+'<section class="card tday"><div class="row"><h2 style="flex:1">Сегодня, '+esc(d)+'</h2><span class="muted">'+(L.length?L.length+' '+(L.length===1?'ученик':L.length<5?'ученика':'учеников'):'')+'</span></div>'+
+    return '<div class="row"><button type="button" class="b main libgo" id="libGo">📚 Библиотека листов</button><button type="button" class="b quiet libgo" id="txGo">✏️ Правки текста</button></div>'+'<section class="card tday"><div class="row"><h2 style="flex:1">Сегодня, '+esc(d)+'</h2><span class="muted">'+(L.length?L.length+' '+(L.length===1?'ученик':L.length<5?'ученика':'учеников'):'')+'</span></div>'+
       (L.length?'<div class="tl">'+L.map(x=>{const s=x.s;const cur=sheets.find(z=>z.id===s.current);const P=pendingFor(s);
         return '<div class="tr" data-sid="'+s.id+'"><span class="tm">'+esc(x.t||'—')+'</span><span class="av">'+esc(s.avatar||'🙂')+'</span><div class="ti"><b>'+esc(s.name)+'</b> <span class="muted">'+esc(s.grade||'')+'</span>'+
           '<div class="tc">'+(P.length?'<span class="chip y">Новый лист от Claude</span>':cur?'<span class="chip">Лист: '+esc(short(cur.title))+'</span>':'<span class="chip r">Листа нет</span>')+'<span class="chip hwst">ДЗ: …</span><span class="chip lres" hidden></span></div></div>'+
@@ -374,7 +380,7 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
     document.querySelectorAll('.tday [data-tmove]').forEach(b=>b.onclick=()=>{const s=sById(b.dataset.tmove);const box=b.closest('.tr').querySelector('.tmv');box.hidden=!box.hidden;
       const tm=new Date(Date.now()+864e5);box.innerHTML='<div class="row"><label class="f">На какой день<input type="date" class="mvd" value="'+dkey(tm)+'" min="'+dkey(tm)+'"></label><label class="f">Время<input type="time" class="mvt" step="300" value="'+esc((s.sched||{})[String(new Date().getDay())]||'')+'"></label><button type="button" class="b main mvgo">Перенести</button></div>';
       box.querySelector('.mvgo').onclick=()=>{const d=box.querySelector('.mvd').value,t=box.querySelector('.mvt').value;if(!d){toast('Выбери день');return;}
-        run(()=>setOff(s,true,{d,t}),'Урок у ученика '+s.name+' перенесён на '+new Date(d+'T12:00').toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})+(t?' в '+t:''));};});$('#libGo').onclick=()=>showLib(null);
+        run(()=>setOff(s,true,{d,t}),'Урок у ученика '+s.name+' перенесён на '+new Date(d+'T12:00').toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'})+(t?' в '+t:''));};});{const x=$('#txGo');if(x)x.onclick=()=>showEdits();}$('#libGo').onclick=()=>showLib(null);
     document.querySelectorAll('.tday [data-tadd]').forEach(b=>b.onclick=async()=>{const s=students.find(x=>x.id===b.dataset.tadd);const it=pendingFor(s)[0];b.textContent='Добавляю…';
       try{await addFromInbox(it,s);toast('Лист добавлен, это урок сегодня у ученика '+s.name);load();}catch(e){b.textContent='Добавить лист';toast('Не получилось: '+(e.message||e));}});
     for(const row of document.querySelectorAll('.tday .tr')){const sid=row.dataset.sid;
@@ -440,6 +446,23 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
     const F=lib.folders;
     return [...map.values()].map(it=>{let t=it.topics&&it.topics.length?it.topics:F.filter(f=>f.kw&&new RegExp(f.kw,'i').test(it.title+' '+it.note)).map(f=>f.id);if(!t.length)t=['other'];it.t=t;return it;})
       .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  }
+  async function showEdits(){
+    open=null;history.replaceState(null,'',location.pathname+'#edits');
+    $('#app').innerHTML='<div class="row"><button type="button" class="b quiet" id="txBack">← Все ученики</button></div><section class="card"><h2>✏️ Правки текста</h2><p class="muted">Загружаю…</p></section>';
+    $('#txBack').onclick=showList;
+    let E=[];try{E=(await fdb.collection('textedits').get()).docs.map(d=>Object.assign({id:d.id},d.data())).sort((a,b)=>(b.at||0)-(a.at||0));}
+    catch(e){$('#app section').innerHTML='<h2>✏️ Правки текста</h2><p class="muted">Не открылось: '+esc(e.message||e)+'. Возможно, в правила Firestore ещё не добавлен блок textedits.</p>';return;}
+    const body=E.length?E.map(x=>'<div class="tx" data-id="'+esc(x.id)+'"><div class="muted">'+esc(x.sheet||'')+(x.at?' · '+new Date(x.at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'}):'')+'</div>'+
+        '<div class="txw"><span class="k">Было</span><span>'+esc(x.was||'')+'</span></div><div class="txn"><span class="k">Стало</span><span>'+(x.html===''?'<i>строчка убрана</i>':esc(x.now||''))+'</span></div>'+
+        '<div class="row"><button type="button" class="b quiet" data-undo="'+esc(x.id)+'">Вернуть как было</button></div></div>').join('')
+      :'<p class="muted">Правок пока нет. На уроке нажми ✏️ «Править текст» в верхней полоске, исправь текст и нажми мимо.</p>';
+    $('#app').innerHTML='<div class="row"><button type="button" class="b quiet" id="txBack">← Все ученики</button></div><section class="card"><div class="row"><h2 style="flex:1">✏️ Правки текста</h2><span class="muted">'+E.length+'</span></div>'+
+      '<p class="muted">Твои исправления в листах. Они уже работают во всех листах и у всех учеников, где встречается этот текст. Нажми «Скопировать для Claude» и пришли мне, чтобы я внёс их и в новые листы.</p>'+
+      (E.length?'<div class="row"><button type="button" class="b hot" id="txCopy">📋 Скопировать для Claude</button></div>':'')+'<div class="txl">'+body+'</div></section>';
+    $('#txBack').onclick=showList;
+    const c=$('#txCopy');if(c)c.onclick=()=>copy('Правки текста для Claude ('+E.length+'):\n\n'+E.map((x,i)=>(i+1)+'. Лист: '+(x.sheet||'')+'\nБыло: '+(x.was||'')+'\nСтало: '+(x.html===''?'(строчку убрать)':(x.now||''))).join('\n\n'),'Скопировано. Вставь в чат с Claude');
+    document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=async()=>{b.textContent='Возвращаю…';try{await fdb.collection('textedits').doc(b.dataset.undo).delete();toast('Вернула как было');showEdits();}catch(e){b.textContent='Вернуть как было';toast('Не получилось: '+(e.message||e));}});
   }
   async function showLib(folder){
     await loadLib();open=null;libFolder=folder||null;history.replaceState(null,'',location.pathname+'#lib'+(libFolder?'/'+libFolder:''));

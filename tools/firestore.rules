@@ -19,6 +19,11 @@ service cloud.firestore {
         allow write: if isAdmin();
       }
     }
+    // правки текста учителем: видят все, меняет только учитель
+    match /textedits/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
     match /board/{id} {
       allow read: if signedIn();
       allow write: if isAdmin();

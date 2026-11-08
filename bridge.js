@@ -69,7 +69,7 @@
 
   /* ---------- синхронизация ---------- */
   /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
-  const SKIP = '.tph,.tph-toast,.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  const SKIP = '[contenteditable=true],.txed-tip,.tph,.tph-toast,.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -111,6 +111,7 @@
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
       else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
       else if (ev.k === 'open') { const el = byPath(ev.p); if (el) { el.classList.toggle('st-open', !!ev.v); gateUpdate(); if (!T && !replay && ev.v) setTimeout(() => { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); flashCall(el); }, 80); } }
+      else if (ev.k === 'txed') { if (window.__txed) window.__txed.put(ev.key, ev.html); }
       else if (ev.k === 'goto' && !replay) { const el = byPath(ev.p); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); if (!T) flashCall(el); } }
     } catch (err) { console.warn('sync', err); }
   }
@@ -411,5 +412,62 @@ html.st-mode:not(.dw-show) .dw-bar{display:none!important}
 .st-mode .wrap{padding-bottom:140px}
 .st-mode.view-hw .dwq{display:none}}`;
   document.head.appendChild(gcss);
+
+  /* ---------- правка текста учителем: сохраняется для всех листов и учеников ---------- */
+  (function(){
+    const UNIT = 'p,li,h1,h2,h3,h4,h5,td,th,dt,dd,figcaption,blockquote,.ex-task,.theory,.dict-veil,.memo,.rule,.note,.tip,.label';
+    const BAD = 'input,button,select,textarea,canvas,video,audio,iframe,[contenteditable=true],.gp,.wcard,.basket,.tok,.opt,.st';
+    const OUT = 'nav.chips,#dwBar,.dw-bar,.dw-tb,#errpanel,.rv-panel,.badges,.stubar,.txed-tip,#finRep';
+    const norm = h => String(h || '').replace(/\s+/g, ' ').replace(/> </g, '><').trim();
+    const h32 = (s, seed) => { let h = seed >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+    const keyOf = html => { const n = norm(html); return 'k' + h32(n, 2166136261) + h32(n, 0x9747b28c) + n.length.toString(36); };
+    const isUnit = el => el.matches(UNIT) && !el.closest(OUT) && !el.querySelector(BAD) && !el.querySelector(UNIT) && el.textContent.trim().length > 1;
+    const units = () => [...document.body.querySelectorAll(UNIT)].filter(isUnit);
+    const byKey = new Map();
+    const mark = el => { if (!el.__k) { el.__k = keyOf(el.innerHTML); el.__orig = el.innerHTML; } if (!byKey.has(el.__k)) byKey.set(el.__k, []); if (!byKey.get(el.__k).includes(el)) byKey.get(el.__k).push(el); return el.__k; };
+    const show = (el, html) => { el.innerHTML = html == null ? el.__orig : html; el.style.display = html === '' ? 'none' : ''; };
+    const put = (k, html) => { (byKey.get(k) || []).forEach(el => { if (el !== document.activeElement) show(el, html); }); };
+    window.__txed = { put };
+    document.addEventListener('DOMContentLoaded', () => {
+      const E = API.edits || {};
+      units().forEach(el => { const k = mark(el); if (E[k] != null) show(el, E[k]); });
+    });
+    if (!T) return;
+    const css = document.createElement('style');
+    css.textContent = `html.txed [data-txu]{outline:1.5px dashed #B5532E;outline-offset:3px;border-radius:4px;cursor:text;transition:background .15s}
+html.txed [data-txu]:hover{background:rgba(181,83,46,.06)}
+html.txed [data-txu]:focus{outline:2.5px solid #B5532E;background:rgba(181,83,46,.08)}
+html.txed [data-txu].txed-ok{background:rgba(124,154,107,.3)!important}
+.txed-tip{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:99;background:#2B2622;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100vw - 24px);text-align:center}`;
+    document.documentElement.appendChild(css);
+    let tip = null; const say = (t, ms) => { if (!tip) { tip = document.createElement('div'); tip.className = 'txed-tip'; document.documentElement.appendChild(tip); } tip.textContent = t; tip.hidden = false; clearTimeout(tip.__t); if (ms) tip.__t = setTimeout(() => { tip.hidden = true; }, ms); };
+    const save = async el => {
+      const k = el.__k; const html = norm(el.innerHTML);
+      if (html === el.__last0) return;
+      el.__last0 = html;
+      const reset = html === norm(el.__orig); const gone = !el.textContent.trim() && !el.querySelector('img');
+      const val = reset ? null : gone ? '' : el.innerHTML;
+      try {
+        await API.saveEdit(k, val, el.__orig, document.title);
+        put(k, val); if (gone) show(el, '');
+        API.emit({ k: 'txed', key: k, html: val });
+        el.classList.add('txed-ok'); setTimeout(() => el.classList.remove('txed-ok'), 900);
+        say(reset ? 'Вернула как было' : gone ? 'Строчка убрана во всех листах. Вернуть можно в админке, «Правки текста»' : 'Сохранено. Так будет во всех листах, где есть этот текст', 2600);
+      } catch (e) { say('Не сохранилось: ' + (e.message || e), 4000); }
+    };
+    window.__txedToggle = on => {
+      document.documentElement.classList.toggle('txed', on);
+      if (on) {
+        units().forEach(el => { mark(el); el.setAttribute('data-txu', ''); el.contentEditable = 'true'; el.spellcheck = true; el.__last0 = norm(el.innerHTML);
+          if (!el.__bound) { el.__bound = 1; el.addEventListener('blur', () => { if (el.isContentEditable) save(el); });
+            el.addEventListener('keydown', e => { if (e.key === 'Escape') { el.blur(); } }); } });
+        say('Нажми на любой текст и исправляй. Сохраняется само, когда нажмёшь мимо', 3500);
+      } else {
+        if (document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
+        document.querySelectorAll('[data-txu]').forEach(el => { el.removeAttribute('data-txu'); el.contentEditable = 'inherit'; });
+        if (tip) tip.hidden = true;
+      }
+    };
+  })();
   addEventListener('load', () => setTimeout(() => API.ready(), 400));
 })();

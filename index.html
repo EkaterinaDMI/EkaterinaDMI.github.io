@@ -296,6 +296,7 @@ body{background:var(--bg);color:var(--ink)}
 .pets button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent)}
 #bar{background:#fff;border-bottom:1px solid var(--line)}
 #bar .who b{font-style:normal}
+#bar .tb.on{background:#B5532E;color:#fff;border-color:#B5532E}
 
 #cab .brand .logo{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:500 1.25rem/1 var(--f-d);font-style:normal;flex:none}
 #cab .lvl{font:500 .88rem/1.4 var(--f)!important;font-style:normal!important;color:var(--muted)!important;background:transparent!important}
@@ -613,6 +614,7 @@ body{background:var(--bg);color:var(--ink)}
         '<button type="button" class="tb" id="findme">🔎 <span class="lbl">Где ученик</span></button>'+
         '<button type="button" class="tb" id="follow" aria-pressed="false">👀 <span class="lbl">Следить</span></button>'+
         '<button type="button" class="tb" id="call">📍 <span class="lbl">Позвать сюда</span></button>'+
+        '<button type="button" class="tb" id="txedBtn" aria-pressed="false">✏️ <span class="lbl">Править текст</span></button>'+
         '<button type="button" class="tb quiet" id="reset">↺ <span class="lbl">Заново</span></button>'+
         '<a class="tb quiet" href="admin.html">Ученики</a><span class="dot" id="conn" title="Связь"></span>';
       bar.querySelector('.who b').textContent=(stu&&stu.name)||sheet.student||sheet.title||'';
@@ -628,6 +630,12 @@ body{background:var(--bg);color:var(--ink)}
     addEventListener('resize',fit);fit();setConn(true);
     /* лист */
     let bridge='';try{bridge=await (await fetch('bridge.js',{cache:'no-cache'})).text();}catch(e){msg('Не загрузился сайт','Обнови страницу.');return;}
+    const TE=fdb.collection('textedits');const edits={};
+    try{(await TE.get()).forEach(d=>{const v=d.data();if(v&&typeof v.html==='string')edits[d.id]=v.html;});}catch(e){}
+    window.__sheetAPI.edits=edits;
+    window.__sheetAPI.saveEdit=(k,html,orig,ttl)=>{if(!T)return Promise.resolve();if(html==null){delete edits[k];return TE.doc(k).delete();}
+      edits[k]=html;const txt=h=>{const d=document.createElement('div');d.innerHTML=h;return d.textContent.replace(/\s+/g,' ').trim();};
+      return TE.doc(k).set({html,orig,was:txt(orig),now:txt(html),sheet:sheet.title||'',sheetId,at:Date.now()});};
     const RESET='<style>:root{color-scheme:light;box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>';
     frame.srcdoc='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1">'+RESET+'<script>'+bridge.replace(/<\/script/gi,'<\\/script')+'<\/script></head><body>'+sheet.html+'</body></html>';
     /* присутствие */
@@ -649,6 +657,7 @@ body{background:var(--bg);color:var(--ink)}
         const sec=sp?(W.__sync.describe?W.__sync.describe(sp):W.__sync.section(sp)):'';
         $('#where').innerHTML=on?(sec?'Сейчас: <b></b>':'Ученик в сети'):'Ученик не в сети';const b=$('#where b');if(b)b.textContent=sec;fit();}
       setInterval(paint,10000);
+      const xb=$('#txedBtn');if(xb)xb.onclick=()=>{const on=xb.getAttribute('aria-pressed')!=='true';xb.setAttribute('aria-pressed',String(on));xb.classList.toggle('on',on);xb.querySelector('.lbl').textContent=on?'Готово':'Править текст';if(W.__txedToggle)W.__txedToggle(on);};
       let armed=false;const rb=$('#reset'),rl=rb.querySelector('.lbl');
       rb.onclick=async()=>{
         if(!armed){armed=true;rb.classList.add('warn');rl.textContent='Стереть ответы? Ещё раз';setTimeout(()=>{armed=false;rb.classList.remove('warn');rl.textContent='Заново';},4000);return;}
