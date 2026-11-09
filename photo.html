@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Фото из тетради</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F3EC;--surface:#fff;--ink:#2B2622;--muted:#8A7F74;--line:#E6DED2;--accent:#B5532E;--accent-soft:#F3E7DA;--ok:#5E7F4E;--f:"Manrope",system-ui,sans-serif;--f-d:"Lora",Georgia,serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f);padding:20px 16px 40px}
+main{max-width:480px;margin:0 auto;display:grid;gap:18px}
+.top{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:500 1.25rem/1 var(--f-d);flex:none}
+.top b{font:600 1.05rem var(--f-d)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:grid;gap:12px}
+h1{margin:0;font:500 1.5rem/1.2 var(--f-d)}
+.task{color:var(--muted);margin:0}
+.task b{color:var(--ink);font-weight:600}
+.shoot{display:grid;place-items:center;gap:6px;width:100%;min-height:150px;border:0;border-radius:22px;background:var(--accent);color:#fff;font:700 1.25rem var(--f);cursor:pointer;box-shadow:0 12px 28px rgba(181,83,46,.25)}
+.shoot span{font-size:2.6rem;line-height:1}
+.shoot:disabled{opacity:.6}
+.gal{font:600 .95rem var(--f);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:12px;cursor:pointer;width:100%}
+.msg{min-height:1.5em;text-align:center;font-weight:600}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--accent)}
+.sent{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sent img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.hint{font-size:.9rem;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><i class="logo">Р</i><b>Русский с Екатериной</b></div>
+  <section class="card">
+    <h1>Фото из тетради</h1>
+    <p class="task" id="task"></p>
+    <button type="button" class="shoot" id="shoot"><span>📷</span>Сфотографировать</button>
+    <button type="button" class="gal" id="gal">Выбрать фото из галереи</button>
+    <input type="file" accept="image/*" capture="environment" id="cam" hidden>
+    <input type="file" accept="image/*" multiple id="pick" hidden>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+    <div class="sent" id="sent"></div>
+    <p class="hint">Снимай при хорошем свете, чтобы страница тетради была видна целиком. Фото сразу появится на компьютере. Можно отправить несколько фото.</p>
+  </section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+(async function(){
+  const $ = s => document.querySelector(s);
+  const P = new URLSearchParams(location.search);
+  const sid = P.get('s'), key = P.get('k') || '', label = P.get('l') || '';
+  const msg = (t, c) => { const m = $('#msg'); m.textContent = t; m.className = 'msg' + (c ? ' ' + c : ''); };
+  $('#task').innerHTML = key ? 'Задание: <b></b>' : '<b>Домашняя работа</b>';
+  if (key) $('#task b').textContent = label || 'задание из тетради';
+  if (!sid) { msg('Ссылка неполная. Нажми «📱 Снять телефоном» на компьютере ещё раз.', 'bad'); $('#shoot').disabled = true; $('#gal').disabled = true; return; }
+  firebase.initializeApp(window.FB_CONFIG);
+  const auth = firebase.auth(), db = firebase.firestore();
+  try { if (!auth.currentUser) await auth.signInAnonymously(); }
+  catch (e) { msg('Нет связи с сайтом. Проверь интернет и открой ссылку ещё раз.', 'bad'); return; }
+  const ref = db.collection('sheets').doc(sid).collection('hwphotos');
+  function shrink(blob){ return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob); const im = new Image();
+    im.onload = () => { let w = im.naturalWidth, h = im.naturalHeight; const k = Math.min(1, 1800 / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h);
+      let q = 0.85, d = cv.toDataURL('image/jpeg', q);
+      while (d.length > 900000 && q > 0.3) { q -= 0.1; d = cv.toDataURL('image/jpeg', q); }
+      URL.revokeObjectURL(url); d.length > 1000000 ? rej({ code: 'too_large' }) : res(d); };
+    im.onerror = () => rej({ code: 'unsupported_type' }); im.src = url; }); }
+  let n = 0;
+  async function send(files){
+    files = [...files]; if (!files.length) return;
+    $('#shoot').disabled = true; $('#gal').disabled = true;
+    let ok = 0;
+    for (const f of files) {
+      msg('Отправляю ' + (ok + 1) + ' из ' + files.length + '…');
+      try { const d = await shrink(f); const doc = { d, at: Date.now(), name: f.name || '', from: 'phone' }; if (key) { doc.task = key; doc.label = label; }
+        await ref.add(doc); ok++; n++;
+        const im = document.createElement('img'); im.src = d; im.alt = 'Отправленное фото ' + n; $('#sent').appendChild(im); }
+      catch (e) { msg(e && e.code === 'unsupported_type' ? 'Этот формат не открылся. Сделай обычное фото камерой.' : 'Не получилось отправить: ' + ((e && e.message) || e), 'bad'); }
+    }
+    if (ok) msg('Готово! Фото уже на компьютере (' + n + '). Можно снять ещё.', 'ok');
+    $('#shoot').disabled = false; $('#gal').disabled = false;
+  }
+  $('#shoot').onclick = () => $('#cam').click();
+  $('#gal').onclick = () => $('#pick').click();
+  $('#cam').onchange = e => { const f = e.target.files; send(f); e.target.value = ''; };
+  $('#pick').onchange = e => { const f = e.target.files; send(f); e.target.value = ''; };
+})();
+</script>
+</body>
+</html>
