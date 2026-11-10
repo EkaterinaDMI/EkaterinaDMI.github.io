@@ -1612,16 +1612,26 @@ try{document.documentElement.classList.remove('teacher');localStorage.removeItem
       const el=els.find(e=>e.closest&&!e.closest('#dwCanvas,.dw-bar,.dw-tb'));
       return (el&&el.closest('.q,.ex,.nb,.theory,.memo,.part-head,.hwc,.ui-card,section.part'))||document.body;}
     function box(a){const r=a.getBoundingClientRect();return {L:r.left+scrollX,T:r.top+scrollY,W:Math.max(1,r.width),H:Math.max(1,r.height)};}
-    function mkRel(st){const a=anchorAt(st.p[0][0],st.p[0][1]);const b=box(a);return {ref:a,a:S?S.path(a):null,pts:st.p.map(q=>[(q[0]-b.L)/b.W,(q[1]-b.T)/b.H])};}
+    function caretAt(x,y){let n=null,o=0;const cv=document.getElementById('dwCanvas');const pe=cv?cv.style.pointerEvents:'';if(cv)cv.style.pointerEvents='none';try{if(document.caretPositionFromPoint){const c=document.caretPositionFromPoint(x,y);if(c){n=c.offsetNode;o=c.offset;}}else if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r){n=r.startContainer;o=r.startOffset;}}}catch(e){}
+      if(cv)cv.style.pointerEvents=pe;
+      if(!n||n.nodeType!==3||!n.data.trim())return null;const par=n.parentElement;if(!par||par.closest('#dwCanvas,.dw-bar,.dw-tb'))return null;
+      if(o>=n.data.length)o=n.data.length-1;if(o<0)o=0;const tn=[...par.childNodes].indexOf(n);return {par,tn,o};}
+    function charBox(par,tn,o){const n=par&&par.childNodes[tn];if(!n||n.nodeType!==3||!n.data.length)return null;o=Math.min(Math.max(0,o),n.data.length-1);
+      const r=document.createRange();r.setStart(n,o);r.setEnd(n,o+1);const q=r.getClientRects()[0]||r.getBoundingClientRect();if(!q||!q.height)return null;return {L:q.left+scrollX,T:q.top+scrollY,H:q.height};}
+    function mkRel(st){const x0=st.p[0][0],y0=st.p[0][1];
+      if(S){const P=st.p,N=P.length,idx=[0,Math.floor(N/2),N-1,Math.floor(N/4),Math.floor(3*N/4)];for(const i of idx){const q=P[i];if(!q)continue;const c=caretAt(q[0]-scrollX,q[1]-scrollY);if(!c)continue;const cb=charBox(c.par,c.tn,c.o);if(cb&&Math.abs(q[1]-(cb.T+cb.H/2))<cb.H*1.2&&q[0]>cb.L-cb.H*2&&q[0]<cb.L+cb.H*3)return {ref:c.par,a:S.path(c.par),tn:c.tn,o:c.o,pts:P.map(z=>[(z[0]-cb.L)/cb.H,(z[1]-cb.T)/cb.H])};}}
+      const a=anchorAt(x0,y0);const b=box(a);return {ref:a,a:S?S.path(a):null,pts:st.p.map(q=>[(q[0]-b.L)/b.W,(q[1]-b.T)/b.H])};}
     function lay(){for(const st of strokes){if(!st.rel||(cur&&cur.mv===st))continue;
       let a=st.rel.ref;if(!a||!a.isConnected){a=S&&st.rel.a!=null?S.byPath(st.rel.a):null;st.rel.ref=a;}
-      if(!a||!a.getClientRects().length)continue;const b=box(a);st.p=st.rel.pts.map(q=>[b.L+q[0]*b.W,b.T+q[1]*b.H]);}}
+      if(!a||!a.getClientRects().length)continue;
+      if(st.rel.tn!=null){const cb=charBox(a,st.rel.tn,st.rel.o);if(cb){st.p=st.rel.pts.map(q=>[cb.L+q[0]*cb.H,cb.T+q[1]*cb.H]);continue;}}
+      const b=box(a);st.p=st.rel.pts.map(q=>[b.L+q[0]*b.W,b.T+q[1]*b.H]);}}
     function add(st){if(!st||!st.p||!st.p.length)return;st.id=st.id||rid();st.rel=mkRel(st);
-      if(S)S.emit({k:'dadd',s:{id:st.id,t:st.t||'pen',c:st.c||null,w:st.w,e:st.e||null,f:st.f||null,a:st.rel.a,pts:st.rel.pts}});}
+      if(S)S.emit({k:'dadd',s:{id:st.id,t:st.t||'pen',c:st.c||null,w:st.w,e:st.e||null,f:st.f||null,a:st.rel.a,tn:st.rel.tn!=null?st.rel.tn:null,o:st.rel.o!=null?st.rel.o:null,pts:st.rel.pts}});}
     function rem(st){if(st&&st.id&&S)S.emit({k:'drem',id:st.id});}
     function clear(){if(S)S.emit({k:'dclr'});}
     function apply(ev){
-      if(ev.k==='dadd'){const d=ev.s;const st={id:d.id,t:d.t,c:d.c,w:d.w,e:d.e,f:d.f,p:[[0,0]],rel:{a:d.a,ref:null,pts:d.pts}};
+      if(ev.k==='dadd'){const d=ev.s;const st={id:d.id,t:d.t,c:d.c,w:d.w,e:d.e,f:d.f,p:[[0,0]],rel:{a:d.a,ref:null,tn:d.tn!=null?d.tn:null,o:d.o!=null?d.o:null,pts:d.pts}};
         const i=strokes.findIndex(z=>z.id===d.id);if(i>=0)strokes[i]=st;else strokes.push(st);}
       else if(ev.k==='drem')strokes=strokes.filter(z=>z.id!==ev.id);
       else if(ev.k==='dclr')strokes=[];
