@@ -69,7 +69,7 @@
 
   /* ---------- синхронизация ---------- */
   /* «Показать слова» и «Показать ответы» учитель открывает только у себя */
-  const SKIP = '[contenteditable=true],[contenteditable=true] *,.txed-ui,.phq,.tph,.tph-toast,.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
+  const SKIP = '.wb,.wb-btn,.wb-tip,[contenteditable=true],[contenteditable=true] *,.txed-ui,.phq,.tph,.tph-toast,.gate-btn,.vtabs,.hwleft,.hwph,#dictShow,.wck > .qn + .inline .btn.ghost,#dwBar,.dw-tb,#dwCanvas,.rv-tab,.rv-panel,#showErr,#errpanel,#finRep,#finErr,#hwSave,#hwCopy,#copyHw,.hwd summary,nav.chips,.ui-add,.ui-zoom,.ui-zoombtn,#stuName,textarea[id^="uicap-"],textarea[id^="uinote-"]';
   function pathOf(el){ const parts = []; while (el && el !== document.body) { const p = el.parentElement; if (!p) return null; parts.unshift(Array.prototype.indexOf.call(p.children, el)); el = p; } return el === document.body ? parts.join('.') : null; }
   function byPath(p){ if (p == null) return null; if (p === '') return document.body; let el = document.body; for (const i of String(p).split('.')) { el = el && el.children[+i]; } return el || null; }
   const send = ev => API.emit(ev);
@@ -109,6 +109,7 @@
             const nx = el.closest && el.closest('.nb'); if (nx && el.matches('.wck .btn:not(.ghost), .nbq .opt')) nx.querySelectorAll('.dict-veil').forEach(x => x.classList.remove('dict-veil')); } } }
       else if (ev.k === 'val') { const el = byPath(ev.p); if (el && 'value' in el) { el.value = ev.v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }
       else if (ev.k === 'key') { const el = ev.p != null ? byPath(ev.p) : document.body; if (el) el.dispatchEvent(new KeyboardEvent('keydown', { key: ev.key, code: ev.code || '', bubbles: true })); }
+      else if (ev.k === 'wb') { if (window.__wb) window.__wb.apply(ev, replay); }
       else if (ev.k === 'dadd' || ev.k === 'drem' || ev.k === 'dclr') { if (window.__dwHook) window.__dwHook.apply(unpackDraw(ev)); }
       else if (ev.k === 'open') { const el = byPath(ev.p); if (el) { el.classList.toggle('st-open', !!ev.v); gateUpdate(); if (!T && !replay && ev.v) setTimeout(() => { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); flashCall(el); }, 80); } }
       else if (ev.k === 'txed') { if (window.__txed) window.__txed.put(ev.key, ev.html); }
@@ -587,5 +588,192 @@ html.txed .txed-blk{outline:2px solid #B5532E!important;outline-offset:6px}
       }, 1200));
     }, true);
   }
+
+  /* ---------- онлайн-доска по кнопке: учитель пишет и вставляет задания, оба рисуют ---------- */
+  (function(){
+    const W = 1000, NS = 'http://www.w3.org/2000/svg';
+    const items = new Map(); let H = 1400, open = false, tool = 'pen', color = '#22201c', mine = [], sel = null, k = 1;
+    const css = document.createElement('style');
+    css.textContent = `
+.wb-btn{position:fixed;left:14px;bottom:64px;z-index:2147482000;font:700 15px/1 system-ui,sans-serif;background:#2f6f5e;color:#fff;border:0;border-radius:999px;padding:12px 18px;box-shadow:0 6px 18px rgba(0,0,0,.18);cursor:pointer}
+.wb-btn.ping{animation:wbPing 1.2s ease-in-out 3}
+@keyframes wbPing{50%{transform:scale(1.12)}}
+.wb{position:fixed;inset:0;z-index:2147483000;background:#eef0ec;display:flex;flex-direction:column}
+.wb[hidden]{display:none}
+html.wb-on #dwBar,html.wb-on .dw-tb,html.wb-on #dwCanvas,html.wb-on .wb-btn{visibility:hidden}
+.wb-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 12px;background:#fff;border-bottom:1px solid #dcdfd8;font:600 14px system-ui,sans-serif}
+.wb-top b{font-size:16px;margin-right:8px}
+.wb-top button{min-width:38px;height:38px;border:1px solid #d6d9d2;background:#fafaf8;border-radius:10px;cursor:pointer;font:600 14px system-ui,sans-serif;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.wb-top button.on{outline:3px solid #2f6f5e;outline-offset:1px;background:#e6f1ec}
+.wb-top .sw{width:24px;height:24px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #bbb}
+.wb-top .sep{width:1px;height:26px;background:#dcdfd8;margin:0 4px}
+.wb-top .grow{flex:1}
+.wb-top .x{background:#2f6f5e;color:#fff;border-color:#2f6f5e}
+.wb-top .warn{background:#fff3ef;border-color:#e5b4a3}
+.wb-sc{flex:1;overflow:auto;padding:16px}
+.wb-wrap{margin:0 auto;position:relative}
+.wb-pg{position:absolute;left:0;top:0;width:${W}px;transform-origin:0 0;background:#fff;
+ background-image:linear-gradient(#dfe8f3 1px,transparent 1px),linear-gradient(90deg,#dfe8f3 1px,transparent 1px);background-size:25px 25px;box-shadow:0 2px 12px rgba(0,0,0,.08);border-radius:6px;touch-action:none}
+.wb-pg.hand{touch-action:auto}
+.wb-pg svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.wb-it{position:absolute;z-index:2}
+.wb-tx{font:400 26px/1.45 "Manrope",system-ui,sans-serif;color:#22201c;white-space:pre-wrap;word-break:break-word;min-width:60px;min-height:1.45em;padding:2px 6px;border-radius:6px;outline:none}
+.tc-mode .wb-tx[contenteditable=true]:focus{box-shadow:0 0 0 2px #2f6f5e55;background:#ffffffcc}
+.wb-im img{width:100%;display:block;border-radius:4px;user-select:none;-webkit-user-drag:none}
+.wb-h{position:absolute;display:none;width:28px;height:28px;border-radius:8px;background:#2f6f5e;color:#fff;font:700 15px/28px system-ui;text-align:center;cursor:pointer;z-index:4;user-select:none;touch-action:none}
+.tc-mode .wb-it:hover .wb-h,.tc-mode .wb-it.sel .wb-h{display:block}
+.wb-h.mv{left:-32px;top:0;cursor:move}.wb-h.del{left:-32px;top:32px;background:#b5532e}.wb-h.rs{right:-14px;bottom:-14px;cursor:nwse-resize}
+.wb-it.sel{outline:2px dashed #2f6f5e88;outline-offset:3px}
+.wb-more{display:block;margin:14px auto 30px;font:600 14px system-ui;border:1px dashed #9aa59a;background:transparent;border-radius:10px;padding:10px 16px;cursor:pointer;color:#55604f}
+.wb-tip{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#22201c;color:#fff;font:600 14px system-ui;padding:10px 16px;border-radius:12px;z-index:2147483001;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+.wb-tip.on{opacity:.92}
+@media (max-width:640px){.wb-top b{display:none}.wb-top button{min-width:34px;height:34px;padding:0 7px}.wb-sc{padding:8px}}`;
+    document.head.appendChild(css);
+
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'wb-btn'; btn.textContent = '🧑‍🏫 Доска'; btn.hidden = !T;
+    const box = document.createElement('div'); box.className = 'wb'; box.hidden = true;
+    const COLORS = [['#22201c','чёрный'],['#d23b2a','красный'],['#1f62c9','синий'],['#1d8a4e','зелёный']];
+    box.innerHTML = '<div class="wb-top" role="toolbar" aria-label="Доска"><b>Доска</b>' +
+      (T ? '<button type="button" data-t="text" title="Текст: нажми на доску и пиши">Т&nbsp;Текст</button><button type="button" data-a="img" title="Картинка или скриншот (можно Ctrl+V)">🖼&nbsp;Картинка</button><button type="button" data-a="sz-" title="Текст мельче">A−</button><button type="button" data-a="sz+" title="Текст крупнее">A+</button><span class="sep"></span>' : '') +
+      '<button type="button" data-t="pen" title="Ручка">✏️</button><button type="button" data-t="hl" title="Маркер">🖍</button><button type="button" data-t="line" title="Прямая линия: подчеркнуть">➖</button><button type="button" data-t="er" title="Ластик">🧽</button><button type="button" data-t="hand" title="Листать">✋</button><span class="sep"></span>' +
+      COLORS.map(c => '<button type="button" data-c="' + c[0] + '" title="' + c[1] + '"><i class="sw" style="background:' + c[0] + '"></i></button>').join('') +
+      '<span class="sep"></span><button type="button" data-a="undo" title="Отменить своё последнее">↩︎</button>' + (T ? '<button type="button" data-a="clr" title="Очистить доску">🗑</button>' : '') +
+      '<span class="grow"></span><button type="button" class="x" data-a="close">Закрыть доску</button></div>' +
+      '<div class="wb-sc"><div class="wb-wrap"><div class="wb-pg"><svg xmlns="' + NS + '"></svg></div></div><button type="button" class="wb-more">+ место внизу</button></div>' +
+      (T ? '<input type="file" accept="image/*" hidden>' : '');
+    const tip = document.createElement('div'); tip.className = 'wb-tip';
+    document.documentElement.append(btn, box, tip);
+    const pg = box.querySelector('.wb-pg'), svg = pg.querySelector('svg'), wrap = box.querySelector('.wb-wrap'), sc = box.querySelector('.wb-sc');
+    let tipT; const say = (t, ms) => { tip.textContent = t; tip.classList.add('on'); clearTimeout(tipT); tipT = setTimeout(() => tip.classList.remove('on'), ms || 2500); };
+    const rid = () => 'w' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+    const emit = op => send(Object.assign({ k: 'wb' }, op));
+
+    function fit(){ const avail = Math.min(sc.clientWidth - (innerWidth < 640 ? 16 : 32), 1100); k = Math.max(0.3, avail / W);
+      pg.style.height = H + 'px'; pg.style.transform = 'scale(' + k + ')'; wrap.style.width = W * k + 'px'; wrap.style.height = H * k + 'px'; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); }
+    addEventListener('resize', () => { if (open) fit(); });
+    const grow = y => { if (y > H - 200) { H = Math.ceil((y + 400) / 100) * 100; fit(); } };
+
+    /* отрисовка */
+    const pathD = p => p.length === 1 ? 'M' + p[0][0] + ' ' + p[0][1] + 'l0.1 0' : 'M' + p.map(q => q[0] + ' ' + q[1]).join('L');
+    function draw(it){
+      let el = it.el;
+      if (it.t === 's') {
+        if (!el) { el = document.createElementNS(NS, 'path'); el.setAttribute('fill', 'none'); el.setAttribute('stroke-linecap', it.f === 'hl' ? 'butt' : 'round'); el.setAttribute('stroke-linejoin', 'round'); svg.appendChild(el); it.el = el; }
+        el.setAttribute('d', pathD(it.p)); el.setAttribute('stroke', it.c); el.setAttribute('stroke-width', it.w); el.setAttribute('opacity', it.f === 'hl' ? .38 : 1);
+        grow(Math.max(...it.p.map(q => q[1]))); return; }
+      if (!el) {
+        el = document.createElement('div'); el.className = 'wb-it ' + (it.t === 'x' ? 'wb-tb' : 'wb-im'); el.dataset.id = it.id;
+        el.innerHTML = (it.t === 'x' ? '<div class="wb-tx"></div>' : '<img alt="Задание на доске">') + '<span class="wb-h mv" title="Перетащить">⠿</span><span class="wb-h del" title="Удалить">✕</span>' + (it.t === 'i' ? '<span class="wb-h rs" title="Размер">⤡</span>' : '');
+        pg.appendChild(el); it.el = el;
+        if (it.t === 'x') { const tx = el.firstChild; if (T) { tx.contentEditable = 'true'; tx.spellcheck = false; bindText(it, tx); } }
+        if (it.t === 'i') { const im = el.querySelector('img'); if (it.src) im.src = it.src; else if (window.__blobSrc) window.__blobSrc(it.b).then(u => { if (u) im.src = u; }); im.onload = () => grow(it.y + im.getBoundingClientRect().height / k); }
+        if (T) bindHandles(it, el);
+      }
+      el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
+      if (it.t === 'x') { el.style.maxWidth = (W - it.x - 10) + 'px'; const tx = el.firstChild; tx.style.fontSize = (it.s || 26) + 'px'; tx.style.color = it.col || ''; if (document.activeElement !== tx && tx.innerText !== it.h) tx.innerText = it.h || ''; grow(it.y + 60); }
+      else el.style.width = it.w + 'px';
+    }
+    function drop(id){ const it = items.get(id); if (!it) return; if (it.el) it.el.remove(); items.delete(id); if (sel === it) sel = null; }
+
+    /* приём событий (и при перезагрузке страницы) */
+    function apply(ev, replay){
+      if (ev.op === 'add') { const it = Object.assign({}, ev.it); if (it.pj) { try { it.p = JSON.parse(it.pj); } catch (e) { it.p = []; } delete it.pj; } drop(it.id); items.set(it.id, it); draw(it); if (!replay && !open && !T) btn.hidden = false; }
+      else if (ev.op === 'upd') { const it = items.get(ev.id); if (it) { Object.assign(it, ev.v); draw(it); } }
+      else if (ev.op === 'del') drop(ev.id);
+      else if (ev.op === 'clr') { [...items.keys()].forEach(drop); H = 1400; fit(); }
+      else if (ev.op === 'open') { if (!T) { btn.hidden = false; setOpen(!!ev.v); if (ev.v && !replay) say('Учитель открыл доску'); if (!ev.v && !replay) btn.classList.add('ping'); } }
+    }
+    function local(op){ apply(op, false); emit(op); }
+
+    function setOpen(v){ open = v; box.hidden = !v; document.documentElement.classList.toggle('wb-on', v); if (v) { fit(); setTool(tool); } }
+    btn.onclick = () => { btn.classList.remove('ping'); setOpen(true); if (T) emit({ op: 'open', v: true }); };
+
+    function setTool(t){ tool = t; box.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t)); pg.classList.toggle('hand', t === 'hand'); pg.style.cursor = t === 'text' ? 'text' : t === 'hand' ? 'grab' : 'crosshair'; }
+    function setColor(c){ color = c; box.querySelectorAll('[data-c]').forEach(b => b.classList.toggle('on', b.dataset.c === c)); if (tool === 'er' || tool === 'hand') setTool('pen'); }
+    setColor(color); setTool(T ? 'text' : 'pen');
+
+    let clrArm = 0;
+    box.querySelector('.wb-top').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.t) { setTool(b.dataset.t); if (b.dataset.t === 'text') say('Нажми на доску в нужном месте и пиши'); return; }
+      if (b.dataset.c) { setColor(b.dataset.c); if (tool === 'text' && sel && sel.t === 'x') local({ op: 'upd', id: sel.id, v: { col: b.dataset.c } }); return; }
+      const a = b.dataset.a;
+      if (a === 'close') { setOpen(false); if (T) emit({ op: 'open', v: false }); }
+      else if (a === 'undo') { while (mine.length && !items.has(mine[mine.length - 1])) mine.pop(); const id = mine.pop(); if (id) local({ op: 'del', id }); }
+      else if (a === 'clr') { if (Date.now() - clrArm < 3000) { local({ op: 'clr' }); mine = []; b.classList.remove('warn'); clrArm = 0; } else { clrArm = Date.now(); b.classList.add('warn'); say('Нажми 🗑 ещё раз, чтобы очистить доску у обоих', 3000); setTimeout(() => b.classList.remove('warn'), 3000); } }
+      else if (a === 'img') box.querySelector('input[type=file]').click();
+      else if ((a === 'sz+' || a === 'sz-')) { if (!sel || sel.t !== 'x') { say('Сначала нажми на текст на доске'); return; } const s = Math.max(16, Math.min(60, (sel.s || 26) + (a === 'sz+' ? 4 : -4))); local({ op: 'upd', id: sel.id, v: { s } }); }
+    });
+    box.querySelector('.wb-more').onclick = () => { H += 600; fit(); sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' }); };
+
+    const pt = e => { const r = pg.getBoundingClientRect(); return [Math.round((e.clientX - r.left) / k * 10) / 10, Math.round((e.clientY - r.top) / k * 10) / 10]; };
+    function select(it){ if (sel && sel.el) sel.el.classList.remove('sel'); sel = it; if (it && it.el) it.el.classList.add('sel'); }
+
+    /* текст */
+    function bindText(it, tx){ let tm;
+      tx.addEventListener('focus', () => select(it));
+      tx.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { it.h = tx.innerText; emit({ op: 'upd', id: it.id, v: { h: it.h } }); }, 450); });
+      tx.addEventListener('blur', () => { clearTimeout(tm); const h = tx.innerText.replace(/\s+$/, ''); if (!h.trim()) { local({ op: 'del', id: it.id }); return; } if (h !== it.h) { it.h = h; emit({ op: 'upd', id: it.id, v: { h } }); } });
+      tx.addEventListener('paste', e => { const f = [...(e.clipboardData || {}).items || []].find(x => x.type.startsWith('image/')); if (f) return; e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+      tx.addEventListener('keydown', e => { if (e.key === 'Escape') tx.blur(); e.stopPropagation(); });
+    }
+    function addText(p){ const it = { id: rid(), t: 'x', x: Math.max(4, Math.min(W - 120, p[0])), y: Math.max(0, p[1] - 18), h: '', s: 26, col: color === '#22201c' ? null : color }; mine.push(it.id); items.set(it.id, it); draw(it); emit({ op: 'add', it: Object.assign({}, it, { el: undefined }) }); const tx = it.el.firstChild; tx.focus(); select(it); }
+
+    /* ручки «перетащить», «удалить», «размер» */
+    function bindHandles(it, el){
+      el.querySelector('.del').addEventListener('click', e => { e.stopPropagation(); local({ op: 'del', id: it.id }); });
+      const drag = (h, onMove, onEnd) => h.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); select(it); h.setPointerCapture(e.pointerId); const s = pt(e), o = { x: it.x, y: it.y, w: it.w };
+        const mv = ev => { const p = pt(ev); onMove(p[0] - s[0], p[1] - s[1], o); draw(it); };
+        const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); onEnd(); };
+        h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); });
+      drag(el.querySelector('.mv'), (dx, dy, o) => { it.x = Math.max(0, Math.min(W - 60, o.x + dx)); it.y = Math.max(0, o.y + dy); }, () => emit({ op: 'upd', id: it.id, v: { x: it.x, y: it.y } }));
+      const rs = el.querySelector('.rs'); if (rs) drag(rs, (dx, dy, o) => { it.w = Math.max(80, Math.min(W - it.x, o.w + dx)); }, () => emit({ op: 'upd', id: it.id, v: { w: it.w } }));
+    }
+
+    /* картинки: кнопка или Ctrl+V */
+    async function addImage(file, p){
+      const up = window.claude && (await window.claude.use('assets')); if (!up) return;
+      say('Загружаю картинку…', 8000);
+      try { const r = await up.upload(file); const im = new Image(); im.src = r.url; await im.decode().catch(() => {});
+        const w = Math.min(W - 80, Math.max(160, Math.round((im.naturalWidth || 600) / 1.4)));
+        const y = p ? p[1] : Math.max(20, ...[...items.values()].map(z => z.t === 's' ? 0 : z.y + (z.el ? z.el.getBoundingClientRect().height / k : 60) + 20));
+        const it = { id: rid(), t: 'i', x: p ? Math.min(p[0], W - w) : 40, y, w, b: r.id }; mine.push(it.id);
+        items.set(it.id, Object.assign({}, it, { src: r.url })); draw(items.get(it.id)); emit({ op: 'add', it }); say('Картинка на доске', 1500);
+        sc.scrollTo({ top: Math.max(0, y * k - 80), behavior: 'smooth' }); }
+      catch (e) { say('Картинка не загрузилась', 3000); }
+    }
+    if (T) {
+      const fi = box.querySelector('input[type=file]'); fi.onchange = () => { [...fi.files].forEach(f => addImage(f)); fi.value = ''; };
+      document.addEventListener('paste', e => { if (!open) return; const f = [...((e.clipboardData || {}).items || [])].find(x => x.type.startsWith('image/')); if (f) { e.preventDefault(); addImage(f.getAsFile()); } });
+    }
+
+    /* рисование */
+    let cur = null;
+    const near = (it, p) => it.p.some((q, i) => { const a = it.p[i - 1] || q; const dx = q[0] - a[0], dy = q[1] - a[1], L = dx * dx + dy * dy; let t = L ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L : 0; t = Math.max(0, Math.min(1, t)); const x = a[0] + t * dx - p[0], y = a[1] + t * dy - p[1]; return x * x + y * y < Math.pow(it.w / 2 + 8, 2); });
+    function erase(p){ for (const it of [...items.values()].reverse()) if (it.t === 's' && near(it, p)) { local({ op: 'del', id: it.id }); return; } }
+    pg.addEventListener('pointerdown', e => {
+      if (e.button > 0 || tool === 'hand') return; if (e.target.closest('.wb-it') && (tool === 'text' || e.target.closest('.wb-h'))) return;
+      const p = pt(e);
+      if (tool === 'text') { if (!T) return; e.preventDefault(); select(null); addText(p); return; }
+      e.preventDefault(); pg.setPointerCapture(e.pointerId); select(null); if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      if (tool === 'er') { cur = { er: true }; erase(p); return; }
+      const it = { id: rid(), t: 's', f: tool === 'hl' ? 'hl' : tool === 'line' ? 'line' : 'pen', c: tool === 'hl' ? (color === '#22201c' ? '#ffd400' : color) : color, w: tool === 'hl' ? 24 : 4, p: [p] };
+      items.set(it.id, it); draw(it); cur = it;
+    });
+    pg.addEventListener('pointermove', e => {
+      if (!cur) return; const p = pt(e);
+      if (cur.er) { erase(p); return; }
+      if (cur.f === 'line') { cur.p = [cur.p[0], [p[0], Math.abs(p[1] - cur.p[0][1]) < 14 ? cur.p[0][1] : p[1]]]; }
+      else { const l = cur.p[cur.p.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) < 1.5) return; cur.p.push(p); }
+      draw(cur);
+    });
+    const end = () => { if (!cur) return; const it = cur; cur = null; if (it.er) return; mine.push(it.id);
+      emit({ op: 'add', it: { id: it.id, t: 's', f: it.f, c: it.c, w: it.w, pj: JSON.stringify(it.p) } }); };
+    pg.addEventListener('pointerup', end); pg.addEventListener('pointercancel', end);
+    document.addEventListener('keydown', e => { if (!open) return; if (e.key === 'Escape' && !(document.activeElement && document.activeElement.isContentEditable)) { setOpen(false); if (T) emit({ op: 'open', v: false }); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !(document.activeElement && document.activeElement.isContentEditable)) { e.preventDefault(); box.querySelector('[data-a=undo]').click(); } });
+    window.__wb = { apply };
+  })();
+
   addEventListener('load', () => setTimeout(() => API.ready(), 400));
 })();
