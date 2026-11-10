@@ -646,7 +646,7 @@ html.wb-on #dwBar,html.wb-on .dw-tb,html.wb-on #dwCanvas,html.wb-on .wb-btn{visi
     const pg = box.querySelector('.wb-pg'), svg = pg.querySelector('svg'), wrap = box.querySelector('.wb-wrap'), sc = box.querySelector('.wb-sc');
     let tipT; const say = (t, ms) => { tip.textContent = t; tip.classList.add('on'); clearTimeout(tipT); tipT = setTimeout(() => tip.classList.remove('on'), ms || 2500); };
     const rid = () => 'w' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
-    const emit = op => send(Object.assign({ k: 'wb' }, op));
+    const emit = op => { send(Object.assign({ k: 'wb' }, op)); if (op.op !== 'open' && typeof save === 'function') save(); };
 
     function fit(){ const avail = Math.min(sc.clientWidth - (innerWidth < 640 ? 16 : 32), 1100); k = Math.max(0.3, avail / W);
       pg.style.height = H + 'px'; pg.style.transform = 'scale(' + k + ')'; wrap.style.width = W * k + 'px'; wrap.style.height = H * k + 'px'; svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); }
@@ -666,22 +666,51 @@ html.wb-on #dwBar,html.wb-on .dw-tb,html.wb-on #dwCanvas,html.wb-on .wb-btn{visi
         el.innerHTML = (it.t === 'x' ? '<div class="wb-tx"></div>' : '<img alt="Задание на доске">') + '<span class="wb-h mv" title="Перетащить">⠿</span><span class="wb-h del" title="Удалить">✕</span>' + (it.t === 'i' ? '<span class="wb-h rs" title="Размер">⤡</span>' : '');
         pg.appendChild(el); it.el = el;
         if (it.t === 'x') { const tx = el.firstChild; if (T) { tx.contentEditable = 'true'; tx.spellcheck = false; bindText(it, tx); } }
-        if (it.t === 'i') { const im = el.querySelector('img'); if (it.src) im.src = it.src; else if (window.__blobSrc) window.__blobSrc(it.b).then(u => { if (u) im.src = u; }); im.onload = () => grow(it.y + im.getBoundingClientRect().height / k); }
+        if (it.t === 'i') { const im = el.querySelector('img'); if (it.src) im.src = it.src; else blobOf(it).then(u => { if (u) im.src = u; }); im.onload = () => grow(it.y + im.getBoundingClientRect().height / k); }
         if (T) bindHandles(it, el);
       }
       el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
       if (it.t === 'x') { el.style.maxWidth = (W - it.x - 10) + 'px'; const tx = el.firstChild; tx.style.fontSize = (it.s || 26) + 'px'; tx.style.color = it.col || ''; if (document.activeElement !== tx && tx.innerText !== it.h) tx.innerText = it.h || ''; grow(it.y + 60); }
       else el.style.width = it.w + 'px';
     }
+    /* картинка могла быть загружена на прошлом уроке: тогда она лежит в другом листе */
+    function blobOf(it){ if (!it.bs || it.bs === API.sheetId) return window.__blobSrc ? window.__blobSrc(it.b) : Promise.resolve('');
+      return API.base.parent.doc(it.bs).collection('blobs').doc(it.b).get().then(s => s.exists ? s.data().d : '').catch(() => ''); }
+    /* доска ученика переходит из урока в урок: учитель хранит её в карточке ученика */
+    const SID = API.studentId || null; let seen = false, saveT = null, loaded = false;
+    const stuRef = () => API.base.firestore.collection('students').doc(SID);
+    function snapshot(){ return [...items.values()].map(it => it.t === 's' ? { id: it.id, t: 's', f: it.f, c: it.c, w: it.w, pj: JSON.stringify(it.p) }
+      : it.t === 'x' ? { id: it.id, t: 'x', x: it.x, y: it.y, h: it.h || '', s: it.s || 26, col: it.col || null }
+      : { id: it.id, t: 'i', x: it.x, y: it.y, w: it.w, b: it.b, bs: it.bs || API.sheetId }); }
+    function save(){ if (!T || !SID || !loaded) return; clearTimeout(saveT); saveT = setTimeout(() => {
+      const data = { at: Date.now(), sheet: API.sheetId, H, items: snapshot() };
+      if (JSON.stringify(data).length > 900000) { say('Доска переполнена: очисти старые записи 🗑', 5000); return; }
+      stuRef().update({ wb: data }).catch(e => console.warn('wb save', e)); }, 1500); }
+    async function restore(){
+      if (!T || !SID) { loaded = true; return; }
+      if (seen) { loaded = true; save(); return; }
+      try { const s = await stuRef().get(); const wb = s.exists && s.data().wb;
+        if (wb && wb.items && wb.items.length && !seen) {
+          const its = wb.items.map(z => Object.assign({}, z));
+          local({ op: 'load', items: its, H: wb.H || 1400 });
+          for (const z of its) if (z.t === 'i' && z.bs && z.bs !== API.sheetId) {
+            try { const o = await API.base.parent.doc(z.bs).collection('blobs').doc(z.b).get();
+              if (o.exists) { await API.base.collection('blobs').doc(z.b).set(o.data()); const it = items.get(z.id); if (it) it.bs = API.sheetId; } } catch (e) {} }
+          btn.classList.add('ping'); say('На доске записи с прошлого урока', 3000);
+        } } catch (e) { console.warn('wb restore', e); }
+      loaded = true; save(); }
     function drop(id){ const it = items.get(id); if (!it) return; if (it.el) it.el.remove(); items.delete(id); if (sel === it) sel = null; }
 
     /* приём событий (и при перезагрузке страницы) */
     function apply(ev, replay){
-      if (ev.op === 'add') { const it = Object.assign({}, ev.it); if (it.pj) { try { it.p = JSON.parse(it.pj); } catch (e) { it.p = []; } delete it.pj; } drop(it.id); items.set(it.id, it); draw(it); if (!replay && !open && !T) btn.hidden = false; }
+      if (ev.op !== 'open') seen = true;
+      if (ev.op === 'load') { [...items.keys()].forEach(drop); H = Math.max(1400, ev.H || 1400); (ev.items || []).forEach(z => { const it = Object.assign({}, z); if (it.pj) { try { it.p = JSON.parse(it.pj); } catch (e) { it.p = []; } delete it.pj; } items.set(it.id, it); draw(it); }); fit(); if (!T) btn.hidden = false; }
+      else if (ev.op === 'add') { const it = Object.assign({}, ev.it); if (it.pj) { try { it.p = JSON.parse(it.pj); } catch (e) { it.p = []; } delete it.pj; } drop(it.id); items.set(it.id, it); draw(it); if (!replay && !open && !T) btn.hidden = false; }
       else if (ev.op === 'upd') { const it = items.get(ev.id); if (it) { Object.assign(it, ev.v); draw(it); } }
       else if (ev.op === 'del') drop(ev.id);
       else if (ev.op === 'clr') { [...items.keys()].forEach(drop); H = 1400; fit(); }
-      else if (ev.op === 'open') { if (!T) { btn.hidden = false; setOpen(!!ev.v); if (ev.v && !replay) say('Учитель открыл доску'); if (!ev.v && !replay) btn.classList.add('ping'); } }
+      if (ev.op !== 'open' && !replay) save();
+      if (ev.op === 'open') { if (!T) { btn.hidden = false; setOpen(!!ev.v); if (ev.v && !replay) say('Учитель открыл доску'); if (!ev.v && !replay) btn.classList.add('ping'); } }
     }
     function local(op){ apply(op, false); emit(op); }
 
@@ -772,8 +801,8 @@ html.wb-on #dwBar,html.wb-on .dw-tb,html.wb-on #dwCanvas,html.wb-on .wb-btn{visi
     pg.addEventListener('pointerup', end); pg.addEventListener('pointercancel', end);
     document.addEventListener('keydown', e => { if (!open) return; if (e.key === 'Escape' && !(document.activeElement && document.activeElement.isContentEditable)) { setOpen(false); if (T) emit({ op: 'open', v: false }); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !(document.activeElement && document.activeElement.isContentEditable)) { e.preventDefault(); box.querySelector('[data-a=undo]').click(); } });
-    window.__wb = { apply };
+    window.__wb = { apply, afterReady: restore };
   })();
 
-  addEventListener('load', () => setTimeout(() => API.ready(), 400));
+  addEventListener('load', () => setTimeout(() => { API.ready(); if (window.__wb) setTimeout(() => window.__wb.afterReady(), 300); }, 400));
 })();

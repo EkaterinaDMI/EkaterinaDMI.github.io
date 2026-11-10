@@ -583,7 +583,7 @@ body{background:var(--bg);color:var(--ink)}
     base.onSnapshot(s=>{const d=s.data();if(d&&(d.sessionId||'main')!==session)location.reload();},()=>{});
     const hash=s=>{let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
     window.__sheetAPI={
-      mode:T?'t':'s',base,sheetId,seed:hash(sheetId+session),attemptId:sheetId+'-'+session,started:sheet.sessionStarted||sheet.createdAt||new Date().toISOString(),
+      mode:T?'t':'s',base,sheetId,studentId:sheet.sid||null,seed:hash(sheetId+session),attemptId:sheetId+'-'+session,started:sheet.sessionStarted||sheet.createdAt||new Date().toISOString(),
       badgeCounts:stu&&stu.stats?stu.stats.badges:null,
       emit:ev=>{base.collection('events').add(Object.assign(JSON.parse(JSON.stringify(ev)),{from:CID,n:++n,at:FV.serverTimestamp()})).catch(()=>setConn(false));},
       onFinish:T&&sheet.sid?finish:null,
