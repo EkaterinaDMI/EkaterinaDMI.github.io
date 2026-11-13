@@ -606,6 +606,15 @@ input:focus,select:focus{border-color:var(--accent)!important;outline:0;box-shad
       if(a.badges&&a.badges.length)L.push('Награды: '+a.badges.join(', '));});
     const r=rev.exists?rev.data():null;if(r&&((r.topics||[]).length||r.note))L.push('','Повторить на следующем уроке: '+(r.topics||[]).join('; ')+(r.note?' · заметка: '+r.note:''));
     const I=imgs.docs.map(d=>d.data());if(I.length){L.push('','Свои задания картинкой (пришли Claude скриншоты):');I.forEach((d,i)=>L.push((i+1)+') ['+(d.sectionName||d.section)+'] '+(d.caption||'без подписи')+' · '+(d.check===true?'верно':d.check===false?'есть ошибки':'не проверено')+(d.note?' · ошибки: '+d.note:'')));}
+    try{const sd=await fdb.collection('students').doc(s.id).get();const wb=sd.exists&&sd.data().wb;
+      if(wb&&wb.items&&wb.items.length){
+        const plain=h=>{const d=document.createElement('div');d.innerHTML=String(h||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li)>/gi,'\n');return (d.textContent||'').replace(/\n{3,}/g,'\n\n').trim();};
+        const tx=wb.items.filter(z=>z.t==='x').map(z=>plain(z.h)).filter(Boolean);
+        const ni=wb.items.filter(z=>z.t==='i').length,ns=wb.items.filter(z=>z.t==='s').length;
+        L.push('','Доска ученика (последнее изменение '+(wb.at?new Date(wb.at).toLocaleString('ru-RU'):'?')+'): текстов '+tx.length+', картинок '+ni+', пометок от руки '+ns+'.');
+        tx.forEach((t,i)=>L.push('Доска '+(i+1)+') '+t));
+        if(ni)L.push('Картинки с доски: пришли Claude скриншот доски.');}
+    }catch(e){}
     try{const tx=await ref.collection('texts').get();tx.docs.map(d=>d.data()).filter(d=>(d.text||'').trim()).forEach(d=>L.push('','Текст ученика · '+(d.label||'')+':',d.text.trim()));}catch(e){}
     return L.join('\n');
   }
