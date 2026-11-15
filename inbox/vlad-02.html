@@ -577,7 +577,19 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 .ui-zoom .ui-zx{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:max(16px,env(safe-area-inset-right,0px));z-index:23;font:inherit;font-weight:600;font-size:.9rem;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:999px;padding:8px 16px;cursor:pointer}
 .ui-zoombtn{font:inherit;font-size:.8rem;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:8px;padding:4px 10px;cursor:pointer}
 </style>
-<style>:root{--bg:#F7F3FA;--surface:#FFFFFF;--ink:#1E1428;--muted:#64597A;--line:#E6DDF0;--accent:#B4235A;--accent-soft:#FBE3EC;--mark:#F5C842;--mark-ink:#1E1428;--cut:#C2410C;--teach:#4F46E5;--teach-soft:#E8E7FC;--sky:#1E1428;--sky2:#7A1A42;--skyink:#FFF5F9;--st0:#DCD3E8;--st1:#F5C842;--st2:#F2789F;--st3:#B4235A;--st4:#8B7CF0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#140E1A;--surface:#1D1525;--ink:#F2EAF7;--muted:#B2A5C4;--line:#352A42;--accent:#FF6FA1;--accent-soft:#3D1828;--mark:#5E4A10;--mark-ink:#FFF1C2;--cut:#FB8A5C;--teach:#A5A0FF;--teach-soft:#25234A;--sky:#0B0710;--sky2:#4A0F28;--skyink:#FFF5F9;--st0:#3B3047;--st1:#F5C842;--st2:#F2789F;--st3:#FF6FA1;--st4:#8B7CF0;color-scheme:dark}}:root[data-theme="dark"]{--bg:#140E1A;--surface:#1D1525;--ink:#F2EAF7;--muted:#B2A5C4;--line:#352A42;--accent:#FF6FA1;--accent-soft:#3D1828;--mark:#5E4A10;--mark-ink:#FFF1C2;--cut:#FB8A5C;--teach:#A5A0FF;--teach-soft:#25234A;--sky:#0B0710;--sky2:#4A0F28;--skyink:#FFF5F9;--st0:#3B3047;--st1:#F5C842;--st2:#F2789F;--st3:#FF6FA1;--st4:#8B7CF0;color-scheme:dark}</style>
+<style>:root{--bg:#F7F3FA;--surface:#FFFFFF;--ink:#1E1428;--muted:#64597A;--line:#E6DDF0;--accent:#B4235A;--accent-soft:#FBE3EC;--mark:#F5C842;--mark-ink:#1E1428;--cut:#C2410C;--teach:#4F46E5;--teach-soft:#E8E7FC;--sky:#1E1428;--sky2:#7A1A42;--skyink:#FFF5F9;--st0:#DCD3E8;--st1:#F5C842;--st2:#F2789F;--st3:#B4235A;--st4:#8B7CF0}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#140E1A;--surface:#1D1525;--ink:#F2EAF7;--muted:#B2A5C4;--line:#352A42;--accent:#FF6FA1;--accent-soft:#3D1828;--mark:#5E4A10;--mark-ink:#FFF1C2;--cut:#FB8A5C;--teach:#A5A0FF;--teach-soft:#25234A;--sky:#0B0710;--sky2:#4A0F28;--skyink:#FFF5F9;--st0:#3B3047;--st1:#F5C842;--st2:#F2789F;--st3:#FF6FA1;--st4:#8B7CF0;color-scheme:dark}}:root[data-theme="dark"]{--bg:#140E1A;--surface:#1D1525;--ink:#F2EAF7;--muted:#B2A5C4;--line:#352A42;--accent:#FF6FA1;--accent-soft:#3D1828;--mark:#5E4A10;--mark-ink:#FFF1C2;--cut:#FB8A5C;--teach:#A5A0FF;--teach-soft:#25234A;--sky:#0B0710;--sky2:#4A0F28;--skyink:#FFF5F9;--st0:#3B3047;--st1:#F5C842;--st2:#F2789F;--st3:#FF6FA1;--st4:#8B7CF0;color-scheme:dark}
+/* дизайн 12.11: задание крупно, ответы учителя одной колонкой */
+.ex-head{display:grid!important;gap:8px}
+.ex-head .tag{justify-self:start}
+.ex-task{display:block;color:var(--ink)!important;font-size:1.12rem!important;font-weight:600;line-height:1.45;background:var(--accent-soft);border-left:5px solid var(--accent);border-radius:10px;padding:10px 14px;margin:0}
+.ex-task::before{content:"Задание: ";font-weight:800;color:var(--accent)}
+.nb ol>li{font-size:1.08rem;font-weight:600;line-height:1.5}
+.nb ol>li .nb-s,.nb ol>li i{font-weight:400}
+.wck .dlist{grid-template-columns:1fr!important;gap:8px}
+.wck .dlist .q{align-items:flex-start;padding:12px 14px}
+.wck .dlist .drill-word{font-size:1.05rem;font-weight:400;line-height:1.6;white-space:normal}
+.wck .dlist .dnum{display:none}
+.wck .dlist input{margin-top:.25em}</style>
 <div class="wrap">
 <header class="top">
   <div class="cosmos" aria-hidden="true">
@@ -1327,7 +1339,7 @@ OQ('#ex-mix',[
  ['бе_шумный',['з','с'],'с','Перед глухим согласным пишем бес-.'],
  ['ветре_ый (день)',NN,'н','Исключение: ветреный.'],
  ['крыж_вник',OE,'о','Запоминаем: крыжовник.'],
- ['ра_считать',['с','сс'],'сс','Приставка рас- и корень -счит-: рассчитать.'],
+ ['ра_читать',['с','сс'],'сс','Приставка рас- и корень -счит-: рассчитать.'],
  ['подли_ое (бесстрашие)',NN,'нн','Подлинный: корень -лин- + суффикс -н-.'],
  ['выр_сли',['а','о'],'о','Корень -раст- — -рос-: перед с без т пишем о.'],
  ['досто_н (уважения)',EI,'и','Достоин: краткое прилагательное.'],
@@ -1438,8 +1450,8 @@ buildWord($('#ex-hwbw'),[["к[а]бинет", "🚪 комната для раб
 (function(){
   
   const pool=[
- ['ш_рох',['о','ё'],'о'],['ш_пот',['о','ё'],'ё'],['медвеж_нок',['о','ё'],'о'],['крыж_вник',['о','ё'],'о'],['деревя_ый',['н','нн'],'нн'],['ветре_ый',['н','нн'],'н'],['исти_ый',['н','нн'],'нн'],['ра_чёт',['с','сс'],'с'],['ра_считать',['с','сс'],'сс'],['пр_знание',['е','и'],'и'],['пр_одолеть',['е','и'],'е'],['з_ря',['а','о'],'а'],['выр_сли',['а','о'],'о'],
- ['позвонить (другу / к другу)',['другу','к другу'],'другу'],['по прие_ду',['зде','зду'],'зде'],['по оконча_ию',['нии','нию'],'нии'],['поделиться (планами / о планах)',['планами','о планах'],'планами'],['рецензия (на статью / о статье)',['на статью','о статье'],'на статью'],['отзыв (о книге / на книгу)',['о книге','на книгу'],'о книге']
+ ['ш_рох',['о','ё'],'о'],['ш_пот',['о','ё'],'ё'],['медвеж_нок',['о','ё'],'о'],['крыж_вник',['о','ё'],'о'],['деревя_ый',['н','нн'],'нн'],['ветре_ый',['н','нн'],'н'],['исти_ый',['н','нн'],'нн'],['ра_чёт',['с','сс'],'с'],['ра_читать',['с','сс'],'сс'],['пр_знание',['е','и'],'и'],['пр_одолеть',['е','и'],'е'],['з_ря',['а','о'],'а'],['выр_сли',['а','о'],'о'],
+ ['позвонить (другу / к другу)',['другу','к другу'],'другу'],['по прие_',['зде','зду'],'зде'],['по оконча_',['нии','нию'],'нии'],['поделиться (планами / о планах)',['планами','о планах'],'планами'],['рецензия (на статью / о статье)',['на статью','о статье'],'на статью'],['отзыв (о книге / на книгу)',['о книге','на книгу'],'о книге']
  ];
   const box=el('div','q');const item={box,done:false,ok:false};
   const top=el('div','blitz-top','<span>Время: <b class="bt">60</b></span><span>Очки: <b class="bs">0</b></span><span>Множитель: <b class="bm">×1</b></span><span>Рекорд: <b class="br">0</b></span>');

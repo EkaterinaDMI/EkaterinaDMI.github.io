@@ -577,7 +577,19 @@ nav.chips a.tk-off{opacity:.45;text-decoration:line-through}
 .ui-zoom .ui-zx{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:max(16px,env(safe-area-inset-right,0px));z-index:23;font:inherit;font-weight:600;font-size:.9rem;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:999px;padding:8px 16px;cursor:pointer}
 .ui-zoombtn{font:inherit;font-size:.8rem;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:8px;padding:4px 10px;cursor:pointer}
 </style>
-<style>:root{--bg:#F2F6F4;--surface:#FFFFFF;--ink:#14211C;--muted:#56665F;--line:#DCE6E1;--accent:#C2410C;--accent-soft:#FDE8DC;--mark:#FCD34D;--mark-ink:#14211C;--cut:#BE123C;--teach:#6D28D9;--teach-soft:#EDE6FB;--sky:#14211C;--sky2:#9A3412;--skyink:#FFF7F1;--st0:#D3DED8;--st1:#FCD34D;--st2:#FB923C;--st3:#F472B6;--st4:#A78BFA}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1513;--surface:#17211D;--ink:#E9F1ED;--muted:#9DB0A7;--line:#2A3833;--accent:#FB8A4C;--accent-soft:#3B2114;--mark:#5C4A10;--mark-ink:#FFF3C4;--cut:#FB7185;--teach:#C4B5FD;--teach-soft:#2A2142;--sky:#08100D;--sky2:#5A2108;--skyink:#FFF7F1;--st0:#33423C;--st1:#FCD34D;--st2:#FB923C;--st3:#F472B6;--st4:#A78BFA;color-scheme:dark}}:root[data-theme="dark"]{--bg:#0E1513;--surface:#17211D;--ink:#E9F1ED;--muted:#9DB0A7;--line:#2A3833;--accent:#FB8A4C;--accent-soft:#3B2114;--mark:#5C4A10;--mark-ink:#FFF3C4;--cut:#FB7185;--teach:#C4B5FD;--teach-soft:#2A2142;--sky:#08100D;--sky2:#5A2108;--skyink:#FFF7F1;--st0:#33423C;--st1:#FCD34D;--st2:#FB923C;--st3:#F472B6;--st4:#A78BFA;color-scheme:dark}</style>
+<style>:root{--bg:#F2F6F4;--surface:#FFFFFF;--ink:#14211C;--muted:#56665F;--line:#DCE6E1;--accent:#C2410C;--accent-soft:#FDE8DC;--mark:#FCD34D;--mark-ink:#14211C;--cut:#BE123C;--teach:#6D28D9;--teach-soft:#EDE6FB;--sky:#14211C;--sky2:#9A3412;--skyink:#FFF7F1;--st0:#D3DED8;--st1:#FCD34D;--st2:#FB923C;--st3:#F472B6;--st4:#A78BFA}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1513;--surface:#17211D;--ink:#E9F1ED;--muted:#9DB0A7;--line:#2A3833;--accent:#FB8A4C;--accent-soft:#3B2114;--mark:#5C4A10;--mark-ink:#FFF3C4;--cut:#FB7185;--teach:#C4B5FD;--teach-soft:#2A2142;--sky:#08100D;--sky2:#5A2108;--skyink:#FFF7F1;--st0:#33423C;--st1:#FCD34D;--st2:#FB923C;--st3:#F472B6;--st4:#A78BFA;color-scheme:dark}}:root[data-theme="dark"]{--bg:#0E1513;--surface:#17211D;--ink:#E9F1ED;--muted:#9DB0A7;--line:#2A3833;--accent:#FB8A4C;--accent-soft:#3B2114;--mark:#5C4A10;--mark-ink:#FFF3C4;--cut:#FB7185;--teach:#C4B5FD;--teach-soft:#2A2142;--sky:#08100D;--sky2:#5A2108;--skyink:#FFF7F1;--st0:#33423C;--st1:#FCD34D;--st2:#FB923C;--st3:#F472B6;--st4:#A78BFA;color-scheme:dark}
+/* дизайн 12.11: задание крупно, ответы учителя одной колонкой */
+.ex-head{display:grid!important;gap:8px}
+.ex-head .tag{justify-self:start}
+.ex-task{display:block;color:var(--ink)!important;font-size:1.12rem!important;font-weight:600;line-height:1.45;background:var(--accent-soft);border-left:5px solid var(--accent);border-radius:10px;padding:10px 14px;margin:0}
+.ex-task::before{content:"Задание: ";font-weight:800;color:var(--accent)}
+.nb ol>li{font-size:1.08rem;font-weight:600;line-height:1.5}
+.nb ol>li .nb-s,.nb ol>li i{font-weight:400}
+.wck .dlist{grid-template-columns:1fr!important;gap:8px}
+.wck .dlist .q{align-items:flex-start;padding:12px 14px}
+.wck .dlist .drill-word{font-size:1.05rem;font-weight:400;line-height:1.6;white-space:normal}
+.wck .dlist .dnum{display:none}
+.wck .dlist input{margin-top:.25em}</style>
 <div class="wrap">
 <header class="top">
   <div class="cosmos" aria-hidden="true">
@@ -1384,7 +1396,7 @@ OQ('#ex-mix',[
  ['пр_землиться',IE,'и','Приближение к земле: при-.'],
  ['пр_милый',EI,'е','Очень милый: пре-.'],
  ['чу_ствовать',['—','в'],'в','Запоминаем: чувствовать.'],
- ['ра_стояние',['с','сс'],'сс','Словарное слово: расстояние.']
+ ['ра_тояние',['с','сс'],'сс','Словарное слово: расстояние.']
 ]);
 wide('#ex-mix');
 buildWord($('#ex-bw'),[['ж[е]лать','🌠 хотеть, чтобы сбылось'],['ж[е]лезо','🔩 металл'],['в[е]л[о]с[и]пед','🚲 два колеса и педали'],['инж[е]нер','👷 проектирует машины и мосты'],['а[пп]етит','🍽 желание поесть'],['а[пп]арат','📷 прибор, например фото…'],['а[кк]уратный','🧺 всё на своих местах'],['[з]десь','📍 в этом месте'],['авт[о]м[о]биль','🚗 машина'],['св[о]бода','🕊 воля, независимость']],'Собери словарное слово');
